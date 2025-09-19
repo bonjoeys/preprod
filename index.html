@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Roadmap des projets</title>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif; background-color: #f8f9fa; color: #3b4252; margin: 0; padding: 20px; }
+        .main-header { display: flex; align-items: center; gap: 25px; max-width: 1800px; margin: 0 auto 20px auto; }
+        .logo { height: 50px; }
+        h1 { text-align: left; color: #d08770; font-weight: 600; margin: 0; }
+        .page-container { display: flex; flex-direction: column; gap: 30px; max-width: 1800px; margin: 0 auto; }
+        .controls-container, .gantt-container, .versions-manager, .workload-container { background-color: #ffffff; padding: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e5e9f0; }
+        .versions-manager { max-width: 1800px; margin: 0 auto 30px auto; padding: 25px 30px; }
+        .controls-container h2, .versions-manager h3 { margin-top: 0; font-size: 1.4em; color: #2e3440; }
+        .versions-manager h3 { font-size: 1.1em; color: #434c5e;}
+
+        .tabs-nav { display: flex; border-bottom: 2px solid #e5e9f0; margin-bottom: 30px; }
+        .tab-link { padding: 12px 20px; cursor: pointer; border: none; background-color: transparent; font-size: 1.1em; color: #4c566a; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+        .tab-link.active { color: #5e81ac; border-bottom-color: #5e81ac; font-weight: 600; }
+        .tab-link:hover { background-color: #eceff4; }
+        
+        .chart-comment { color: #4c566a; text-align: center; margin-top: 20px; font-style: italic; }
+        
+        .chart-filter-container { margin-bottom: 20px; max-width: 250px; }
+        .chart-filter-container label { display: block; font-weight: 500; color: #4c566a; margin-bottom: 5px; font-size: 0.9em; }
+
+        #tasks-table { width: 100%; border-collapse: collapse; }
+        #tasks-table th, #tasks-table td { padding: 8px; text-align: left; vertical-align: top; }
+        #tasks-table tbody tr { border-bottom: 1px solid #eceff4; }
+        #tasks-table th { font-size: 0.9em; text-transform: uppercase; color: #4c566a; padding-bottom: 12px; font-weight: 600; }
+        #tasks-table th.center-header { text-align: center; }
+        #tasks-table td.delete-cell { vertical-align: middle; text-align: center; }
+        .delete-row-btn { background: none; border: none; color: #bf616a; font-size: 1.6em; cursor: pointer; padding: 4px 8px; opacity: 0.7; transition: opacity 0.2s, color 0.2s; line-height: 1; border-radius: 4px; }
+        .delete-row-btn:hover { opacity: 1; color: #d08770; background-color: #eceff4; }
+
+        #tasks-table td.task-name-cell { vertical-align: middle; }
+        #tasks-table td.task-name-cell input { text-align: left; flex-grow: 1; border-color: transparent; background-color: transparent; }
+        #tasks-table td.task-name-cell input:hover { border-color: #d8dee9; }
+        #tasks-table td.task-name-cell input:focus { border-color: #5e81ac; outline: none; }
+        #tasks-table td.task-duration { text-align: center; font-weight: 500; color: #4c566a; white-space: nowrap; vertical-align: middle; }
+        #tasks-table input, #tasks-table select { width: 100%; padding: 8px; border: 1px solid #d8dee9; border-radius: 6px; font-family: inherit; font-size: 14px; box-sizing: border-box; }
+        #tasks-table input[type="date"], #tasks-table select { text-align: center; }
+        
+        #tasks-table .filter-row th { padding-bottom: 15px; padding-top: 5px; }
+        .header-filter { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #d8dee9; background-color: #f8f9fa; }
+        .header-filter:focus { background-color: #fff; border-color: #5e81ac; outline: none; }
+        
+        #tasks-table #project-counter { text-align: right; vertical-align: middle; font-size: 1.1em; color: #E67E22; font-weight: 500; padding-right: 10px; white-space: nowrap; text-transform: none; }
+
+        .edit-desc-btn { background-color: #e5e9f0; border: none; color: #4c566a; padding: 8px 12px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 13px; font-weight: 500; }
+        .edit-desc-btn:hover { background-color: #d8dee9; }
+
+        #versions-select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #d8dee9; background-color: #fff; font-size: 15px; }
+        .button { display: block; flex: 1; width: 100%; padding: 12px; margin-top: 10px; color: #ffffff; border: none; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; text-align: center; }
+        .save-button { background-color: #a3be8c; } .save-button:hover { background-color: #b5d5a2; }
+        .delete-button { background-color: #d08770; } .delete-button:hover { background-color: #e59a85; }
+        .cancel-button { background-color: #bf616a; } .cancel-button:hover { background-color: #d08770; }
+        .add-button { background-color: #5e81ac; } .add-button:hover { background-color: #81a1c1; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: #fff; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal-content h3 { margin-top: 0; }
+        .modal-content label { display: block; margin-top: 15px; font-weight: 500; color: #4c566a; }
+        .modal-content input, .modal-content select { width: 100%; padding: 10px; font-size: 1em; margin-top: 5px; border: 1px solid #d8dee9; border-radius: 6px; box-sizing: border-box; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-actions .button { margin-top: 0; }
+        #desc-modal-textarea { width: 100%; font-size: 1em; margin-top: 5px; border: 1px solid #d8dee9; border-radius: 6px; box-sizing: border-box; resize: vertical; padding: 10px; }
+        #desc-modal-project-name { font-weight: bold; color: #2e3440; }
+        .hidden { display: none; }
+        .default-version-wrapper { display: flex; align-items: center; margin-top: 15px; }
+        .default-version-wrapper input { width: auto; margin-right: 10px; }
+        .default-version-wrapper label { margin: 0; }
+        @media print { @page { size: A4 landscape; margin: 1cm; } .controls-container, .versions-manager, .main-header, .tabs-nav, .workload-container, .chart-filter-container { display: none; } .page-container { flex-direction: column; align-items: flex-start; max-width: 100%; gap: 0; } .gantt-container { width: 100%; max-width: 100%; flex: auto; box-shadow: none; border: none; } .gantt-container.hidden { display: block !important; } }
+    </style>
+</head>
+<body>
+    <div class="main-header">
+        <img src="SGS_Logo.svg.png" alt="Logo SGS" class="logo">
+        <h1>Roadmap des projets</h1>
+    </div>
+    <div class="versions-manager">
+        <h3>Charger une version</h3>
+        <select id="versions-select">
+            <option value="">-- Chargement des versions... --</option>
+        </select>
+    </div>
+    <div class="page-container">
+        <div class="tabs-nav">
+            <button class="tab-link active" data-tab="controls-container">📝 Planning & Saisie</button>
+            <button class="tab-link" data-tab="gantt-container">📊 Vue Gantt</button>
+            <button class="tab-link" data-tab="workload-container">📈 Analyse de charge</button>
+        </div>
+
+        <div id="gantt-container" class="gantt-container content-tab hidden">
+            <div class="chart-filter-container">
+                <label for="sponsor-filter-gantt">Filtre Sponsor Actif</label>
+                <select id="sponsor-filter-gantt" class="header-filter sponsor-filter-sync"></select>
+            </div>
+            <div id="gantt-chart"></div>
+            <p class="chart-comment">Ce diagramme de Gantt illustre la chronologie des projets. Chaque barre représente la durée d'un projet, de sa date de début à sa date de fin.</p>
+        </div>
+        <div id="workload-container" class="workload-container content-tab hidden">
+            <div class="chart-filter-container">
+                <label for="sponsor-filter-workload">Filtre Sponsor Actif</label>
+                <select id="sponsor-filter-workload" class="header-filter sponsor-filter-sync"></select>
+            </div>
+            <div id="workload-chart"></div>
+            <p class="chart-comment">Ce graphique représente le nombre de projets actifs simultanément pour chaque jour de la période couverte par la roadmap.</p>
+        </div>
+        <div id="controls-container" class="controls-container content-tab">
+            <h2>Planning</h2>
+            <div id="table-wrapper"></div>
+            <button class="button add-button" id="add-task-btn">Ajouter un projet</button>
+            <button class="button save-button" id="manage-versions-btn">Gérer les versions...</button>
+        </div>
+    </div>
+
+    <div id="save-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3>Gérer les versions</h3>
+            <label for="modal-versions-select">Action</label>
+            <select id="modal-versions-select"><option value="new">Créer une nouvelle version</option></select>
+            <label for="version-name-input">Nom de la version</label>
+            <input type="text" id="version-name-input" placeholder="Nom de la nouvelle version...">
+            <div id="default-version-wrapper" class="default-version-wrapper hidden">
+                <input type="checkbox" id="set-as-default-checkbox">
+                <label for="set-as-default-checkbox">Définir comme version par défaut</label>
+            </div>
+            <div class="modal-actions">
+                <button id="confirm-save-btn" class="button save-button">Mettre à jour</button>
+                <button id="confirm-delete-btn" class="button delete-button hidden">Supprimer</button>
+                <button id="cancel-save-btn" class="button cancel-button">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="description-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3>Description du projet</h3>
+            <p><strong>Projet :</strong> <span id="desc-modal-project-name"></span></p>
+            <label for="desc-modal-textarea">Description</label>
+            <textarea id="desc-modal-textarea" rows="10"></textarea>
+            <div class="modal-actions">
+                <button id="confirm-desc-btn" class="button save-button">Valider</button>
+                <button id="cancel-desc-btn" class="button cancel-button">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyB8OWLAAZr9kVdZKZgYTndAd8fPUCzLxMc",
+            authDomain: "gantt-agenda-sgs.firebaseapp.com",
+            projectId: "gantt-agenda-sgs",
+            storageBucket: "gantt-agenda-sgs.appspot.com",
+            messagingSenderId: "993389286221",
+            appId: "1:993389286221:web:1f2adf3435c014b4851d04",
+            measurementId: "G-QVK435BBE5"
+        };
+        const initialTasks = []; 
+        const sponsors = ['AGREMENT', 'COMMERCE', 'COMPTABILITE', 'DIGITAL', 'FORMATION', 'L', 'MARKETING', 'NEOBIZ', 'NR', 'QUALITE', 'REGLEMENTAIRE', 'TECHNIQUE'];
+        
+        let currentTasks = [];
+        let displayedTasks = [];
+        let sponsorFilter = 'all';
+        let projectFilter = '';
+        let allVersions = [];
+        let filterDebounceTimer;
+        let chart;
+        let workloadChart;
+        let db;
+
+        const calculateDuration = (start, end) => {
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            if (isNaN(startDate) || isNaN(endDate) || endDate < startDate) return 0;
+            return Math.round((endDate - startDate) / (1000 * 3600 * 24)) + 1;
+        };
+
+        const formatDataForChart = (tasks) => [{
+             name: 'Planning', 
+             data: tasks.map(t => ({ 
+                 x: `[${t.sponsor}] ${t.name}`, 
+                 y: [new Date(t.start).getTime(), new Date(t.end).getTime()] 
+            })) 
+        }];
+        
+        const calculateWorkloadData = (tasks) => {
+            if (tasks.length === 0) {
+                return [{ name: "Projets actifs", data: [] }];
+            }
+            
+            const workload = new Map();
+            let minDate = new Date(tasks[0].start);
+            let maxDate = new Date(tasks[0].end);
+
+            tasks.forEach(task => {
+                const start = new Date(task.start);
+                const end = new Date(task.end);
+                if (start < minDate) minDate = start;
+                if (end > maxDate) maxDate = end;
+            });
+
+            for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
+                workload.set(d.toISOString().split('T')[0], 0);
+            }
+
+            tasks.forEach(task => {
+                const start = new Date(task.start);
+                const end = new Date(task.end);
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    const dateString = d.toISOString().split('T')[0];
+                    if (workload.has(dateString)) {
+                        workload.set(dateString, workload.get(dateString) + 1);
+                    }
+                }
+            });
+            
+            const data = Array.from(workload.entries()).map(([date, count]) => {
+                return { x: new Date(date).getTime(), y: count };
+            });
+
+            data.sort((a,b) => a.x - b.x);
+            return [{ name: "Projets actifs", data: data }];
+        };
+
+        const populateSponsorFilters = () => {
+            const sponsorOptions = sponsors.map(s => `<option value="${s}">${s}</option>`).join('');
+            document.querySelectorAll('.sponsor-filter-sync').forEach(filter => {
+                filter.innerHTML = `<option value="all">Tous sponsors</option>${sponsorOptions}`;
+                filter.value = sponsorFilter;
+            });
+        };
+
+        const syncSponsorFilters = () => {
+            document.querySelectorAll('.sponsor-filter-sync').forEach(filter => {
+                filter.value = sponsorFilter;
+            });
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            try { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); } 
+            catch (e) { console.error("Erreur d'initialisation de Firebase", e); }
+
+            populateSponsorFilters();
+
+            const handleSponsorFilterChange = (e) => {
+                sponsorFilter = e.target.value;
+                refreshUI();
+            };
+
+            const elements = {
+                saveModal: document.getElementById('save-modal'), versionNameInput: document.getElementById('version-name-input'),
+                versionsSelect: document.getElementById('versions-select'), modalVersionsSelect: document.getElementById('modal-versions-select'),
+                confirmDeleteBtn: document.getElementById('confirm-delete-btn'), defaultVersionWrapper: document.getElementById('default-version-wrapper'),
+                setAsDefaultCheckbox: document.getElementById('set-as-default-checkbox'),
+                descModal: document.getElementById('description-modal'), descModalProjectName: document.getElementById('desc-modal-project-name'),
+                descModalTextarea: document.getElementById('desc-modal-textarea'),
+                tableWrapper: document.getElementById('table-wrapper'),
+                ganttChart: document.querySelector("#gantt-chart"),
+                workloadChart: document.querySelector("#workload-chart")
+            };
+            
+            const chartOptions = {
+                series: [], chart: { height: 800, type: 'rangeBar', zoom: { enabled: false } },
+                plotOptions: { bar: { horizontal: true, borderRadius: 5, barHeight: '70%' } },
+                fill: { type: 'solid' },
+                colors: [({ dataPointIndex }) => {
+                    const task = displayedTasks[dataPointIndex];
+                    if (!task) return '#E67E22';
+                    if (new Date(task.end) < new Date() && task.status !== 'Terminé') return '#BF616A';
+                    if (task.status === 'Terminé') return '#A3BE8C';
+                    return '#E67E22';
+                }],
+                xaxis: { type: 'datetime', labels: { datetimeUTC: false, style: { colors: '#888' } } },
+                yaxis: { labels: { style: { fontSize: '14px', colors: '#3b4252' }, trim: false, maxWidth: 400 } },
+                grid: { borderColor: '#e5e9f0', row: { colors: ['#f9fafb', '#ffffff'], opacity: 1 } },
+                tooltip: { 
+                    theme: 'dark', 
+                    custom: ({ seriesIndex, dataPointIndex }) => { 
+                        const task = displayedTasks[dataPointIndex]; 
+                        if (!task) return ''; 
+                        const options = { year: 'numeric', month: 'long', day: 'numeric' }; 
+                        const startDate = new Date(task.start).toLocaleDateString('fr-FR', options); 
+                        const endDate = new Date(task.end).toLocaleDateString('fr-FR', options);
+                        const taskDisplayName = `[${task.sponsor}] ${task.name}`;
+                        const descriptionHtml = task.description ? task.description.replace(/\n/g, '<br>') : '<i>Aucune description</i>';
+                        const descriptionStyle = "font-style: italic; opacity: 0.9; margin-top: 10px; padding-top: 10px; border-top: 1px solid #4c566a; max-width: 350px; white-space: normal; overflow-wrap: break-word;";
+                        return `<div class="apexcharts-tooltip-box"><div class="apexcharts-tooltip-title">${taskDisplayName}</div><div><strong>Du:</strong> ${startDate}</div><div><strong>Au:</strong> ${endDate}</div><div style="${descriptionStyle}">${descriptionHtml}</div></div>`; 
+                    } 
+                },
+                annotations: { xaxis: [{ x: new Date().getTime(), borderColor: '#e44d26', strokeDashArray: 2, label: { text: 'Aujourd\'hui', borderColor: '#e44d26', style: { color: '#fff', background: '#e44d26' } } }] }
+            };
+            chart = new ApexCharts(elements.ganttChart, chartOptions);
+            chart.render();
+
+            const workloadChartOptions = {
+                series: [],
+                chart: { type: 'area', height: 600, zoom: { enabled: false } },
+                colors: ['#E67E22'],
+                dataLabels: { enabled: false },
+                stroke: { curve: 'smooth' },
+                xaxis: { 
+                    type: 'datetime',
+                    labels: { datetimeUTC: false, style: { colors: '#888' } }
+                },
+                yaxis: {
+                    title: { text: 'Nombre de projets actifs' },
+                    min: 0,
+                    labels: {
+                        formatter: function (val) { return val.toFixed(0); }
+                    }
+                },
+                tooltip: { x: { format: 'dd MMMM yyyy' } },
+                fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.2, stops: [0, 90, 100] } }
+            };
+            workloadChart = new ApexCharts(elements.workloadChart, workloadChartOptions);
+            workloadChart.render();
+            
+            const tabs = document.querySelectorAll('.tab-link');
+            const contentTabs = document.querySelectorAll('.content-tab');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(item => item.classList.remove('active'));
+                    tab.classList.add('active');
+                    const targetId = tab.dataset.tab;
+                    contentTabs.forEach(content => {
+                        content.classList.add('hidden');
+                        if (content.id === targetId) {
+                            content.classList.remove('hidden');
+                        }
+                    });
+                    if (targetId === 'gantt-container') {
+                        chart.updateOptions({ chart: { height: Math.max(600, displayedTasks.length * 45) } });
+                    }
+                    if (targetId === 'workload-container') {
+                         workloadChart.updateOptions({});
+                    }
+                });
+            });
+
+            document.querySelectorAll('#sponsor-filter-gantt, #sponsor-filter-workload').forEach(filter => {
+                filter.addEventListener('change', handleSponsorFilterChange);
+            });
+            
+            const renderTable = (tasks) => {
+                const sponsorOptions = sponsors.map(s => `<option value="${s}">${s}</option>`).join('');
+                let tableHTML = `<table id="tasks-table">
+                    <thead>
+                        <tr class="filter-row">
+                            <th></th>
+                            <th><select id="sponsor-filter-table" class="header-filter sponsor-filter-sync"><option value="all">Tous sponsors</option>${sponsorOptions}</select></th>
+                            <th><input type="text" id="project-filter" class="header-filter" placeholder="Filtrer projet (3 car. min)..."></th>
+                            <th id="project-counter" colspan="5"></th>
+                        </tr>
+                        <tr>
+                            <th style="width: 5%;"></th>
+                            <th class="center-header" style="width: 15%;">Sponsor</th>
+                            <th class="center-header">Projet</th>
+                            <th class="center-header" style="width: 12%;">Début</th>
+                            <th class="center-header" style="width: 12%;">Fin</th>
+                            <th class="center-header" style="width: 8%;">Durée (j)</th>
+                            <th class="center-header" style="width: 10%;">Description</th>
+                            <th class="center-header" style="width: 12%;">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+                tasks.forEach((task) => {
+                    const duration = calculateDuration(task.start, task.end);
+                    tableHTML += `<tr>
+                        <td class="delete-cell"><button class="delete-row-btn" data-id="${task.id}" title="Supprimer ce projet">×</button></td>
+                        <td><select data-id="${task.id}" data-type="sponsor">${sponsors.map(s => `<option value="${s}" ${task.sponsor === s ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
+                        <td class="task-name-cell"><input type="text" value="${task.name}" data-id="${task.id}" data-type="name"></td>
+                        <td><input type="date" value="${task.start}" data-id="${task.id}" data-type="start"></td>
+                        <td><input type="date" value="${task.end}" data-id="${task.id}" data-type="end"></td>
+                        <td class="task-duration">${duration} j</td>
+                        <td><button class="edit-desc-btn" data-id="${task.id}">Détails</button></td>
+                        <td><select data-id="${task.id}" data-type="status">
+                            <option value="À faire" ${task.status === 'À faire' ? 'selected' : ''}>À faire</option>
+                            <option value="En cours" ${task.status === 'En cours' ? 'selected' : ''}>En cours</option>
+                            <option value="Terminé" ${task.status === 'Terminé' ? 'selected' : ''}>Terminé</option>
+                        </select></td>
+                    </tr>`;
+                });
+                tableHTML += `</tbody></table>`;
+                elements.tableWrapper.innerHTML = tableHTML;
+
+                document.getElementById('sponsor-filter-table').addEventListener('change', handleSponsorFilterChange);
+
+                const projectFilterEl = document.getElementById('project-filter');
+                projectFilterEl.value = projectFilter;
+                
+                projectFilterEl.addEventListener('input', (e) => {
+                    clearTimeout(filterDebounceTimer);
+                    const inputValue = e.target.value;
+                    filterDebounceTimer = setTimeout(() => {
+                        projectFilter = inputValue;
+                        refreshUI();
+                    }, 1000);
+                });
+
+                elements.tableWrapper.querySelectorAll('input, select:not(.sponsor-filter-sync)').forEach(input => input.addEventListener('change', handleInputChange));
+                elements.tableWrapper.querySelectorAll('.delete-row-btn, .edit-desc-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const id = event.currentTarget.dataset.id;
+                        if (button.classList.contains('delete-row-btn')) {
+                            const taskIndex = currentTasks.findIndex(t => t.id === id);
+                            if (taskIndex > -1 && confirm(`Supprimer le projet "${currentTasks[taskIndex].name}" ?`)) {
+                                currentTasks.splice(taskIndex, 1);
+                                refreshUI();
+                                localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
+                            }
+                        } else if (button.classList.contains('edit-desc-btn')) {
+                            openDescriptionModal(id);
+                        }
+                    });
+                });
+            };
+
+            const openDescriptionModal = (taskId) => {
+                const task = currentTasks.find(t => t.id === taskId);
+                if (!task) return;
+                elements.descModal.dataset.editingId = taskId;
+                elements.descModalProjectName.textContent = `[${task.sponsor}] ${task.name}`;
+                elements.descModalTextarea.value = task.description || '';
+                elements.descModal.classList.remove('hidden');
+                elements.descModalTextarea.focus();
+            };
+            
+            const updateCounter = () => {
+                const counterEl = document.getElementById('project-counter');
+                if (!counterEl) return;
+                const count = displayedTasks.length;
+                const plural = count > 1 ? 's' : '';
+                
+                if (sponsorFilter !== 'all') {
+                    counterEl.innerHTML = `Affiche ${count} projet${plural} pour le sponsor ${sponsorFilter}`;
+                } else {
+                    counterEl.innerHTML = `Affiche ${count} projet${plural}, tous sponsors confondus`;
+                }
+            };
+
+            const applyFilters = () => {
+                let filtered = [...currentTasks];
+                if (sponsorFilter !== 'all') {
+                    filtered = filtered.filter(task => task.sponsor === sponsorFilter);
+                }
+                const searchTerm = projectFilter.toLowerCase().trim();
+                if (searchTerm.length >= 3) {
+                    filtered = filtered.filter(task => task.name.toLowerCase().includes(searchTerm));
+                }
+                return filtered;
+            };
+
+            const updateChart = (tasks) => {
+                const chartHeight = Math.max(600, tasks.length * 45);
+                if (chart) {
+                    chart.updateOptions({
+                        chart: { height: chartHeight }, series: formatDataForChart(tasks),
+                        annotations: { xaxis: [{ x: new Date().getTime(), borderColor: '#e44d26', strokeDashArray: 2, label: { text: 'Aujourd\'hui', borderColor: '#e44d26', style: { color: '#fff', background: '#e44d26' } } }] }
+                    });
+                }
+            };
+            
+            const updateWorkloadChart = (tasks) => {
+                if (workloadChart) {
+                    const workloadData = calculateWorkloadData(tasks);
+                    const actualMaxY = workloadData[0].data.reduce((max, point) => Math.max(max, point.y), 0);
+                    const newYAxisMax = (actualMaxY < 5) ? 5 : Math.ceil(actualMaxY / 5) * 5;
+                    workloadChart.updateOptions({
+                        series: workloadData,
+                        yaxis: {
+                            max: newYAxisMax,
+                            tickAmount: (newYAxisMax <= 10) ? newYAxisMax : 10
+                        }
+                    });
+                }
+            };
+
+            const refreshUI = () => {
+                currentTasks.sort((a, b) => new Date(a.end) - new Date(b.end));
+                displayedTasks = applyFilters();
+                renderTable(displayedTasks); 
+                updateChart(displayedTasks);
+                updateWorkloadChart(displayedTasks);
+                updateCounter();
+                syncSponsorFilters();
+            };
+            
+            const handleInputChange = (event) => {
+                const { id, type } = event.target.dataset;
+                const taskIndex = currentTasks.findIndex(t => t.id === id);
+                if (taskIndex === -1) return;
+                currentTasks[taskIndex][type] = event.target.value;
+                if (type === 'start' || type === 'end') {
+                    const task = currentTasks[taskIndex];
+                    if (new Date(task.end) < new Date(task.start)) {
+                        if (type === 'start') task.end = task.start;
+                        else task.start = task.end;
+                    }
+                }
+                refreshUI();
+                localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
+            };
+
+            const updateVersionsDropdown = (versions) => {
+                const selectedValue = elements.versionsSelect.value;
+                elements.versionsSelect.innerHTML = '<option value="">-- Sélectionnez une version --</option>';
+                versions.forEach(version => {
+                    const option = document.createElement('option');
+                    option.value = version.id;
+                    option.textContent = version.isDefault ? `${version.name} (par défaut)` : version.name;
+                    elements.versionsSelect.appendChild(option);
+                });
+                if(selectedValue) elements.versionsSelect.value = selectedValue;
+            };
+
+            const populateModalDropdown = () => {
+                elements.modalVersionsSelect.innerHTML = '<option value="new">Créer une nouvelle version</option>';
+                allVersions.forEach(version => {
+                    const option = document.createElement('option');
+                    option.value = version.id;
+                    option.textContent = version.name;
+                    elements.modalVersionsSelect.appendChild(option);
+                });
+            };
+
+            const setCurrentTasks = (tasks) => {
+                const tasksWithDefaults = tasks.map(task => {
+                    let sponsor = task.sponsor, name = task.name;
+                    if (!sponsor && name) {
+                        const match = name.match(/^\[(.*?)\]\s*(.*)$/);
+                        if (match && sponsors.includes(match[1])) { [sponsor, name] = [match[1], match[2]]; }
+                    }
+                    return { id: task.id || `task_${new Date().getTime()}_${Math.random()}`, ...task, sponsor: sponsor || sponsors[0], name, status: task.status || 'À faire', description: task.description || '' };
+                });
+                currentTasks = JSON.parse(JSON.stringify(tasksWithDefaults));
+                localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
+                refreshUI();
+            };
+            
+            const loadVersionFromFirestore = async (versionId) => { if (!versionId) return; try { const doc = await db.collection("versions").doc(versionId).get(); if (doc.exists) setCurrentTasks(doc.data().tasks); } catch (error) { console.error("Erreur de lecture", error); } };
+            
+            const handleSaveOrUpdateVersion = async () => {
+                const selectedActionId = elements.modalVersionsSelect.value;
+                const newName = elements.versionNameInput.value.trim();
+                const isDefault = elements.setAsDefaultCheckbox.checked;
+                if (!newName) return alert("Le nom de la version ne peut pas être vide.");
+                const plainTasks = JSON.parse(JSON.stringify(currentTasks));
+                const versionData = { name: newName, tasks: plainTasks, isDefault };
+                const existingNameQuery = await db.collection("versions").where("name", "==", newName).get();
+                const nameExistsOnOtherDoc = !existingNameQuery.empty && existingNameQuery.docs[0].id !== selectedActionId;
+                if (nameExistsOnOtherDoc) return alert(`Une autre version nommée "${newName}" existe déjà.`);
+                try {
+                    const batch = db.batch();
+                    if (isDefault) {
+                        const currentDefaultQuery = await db.collection("versions").where("isDefault", "==", true).get();
+                        currentDefaultQuery.forEach(doc => {
+                            if (doc.id !== selectedActionId) batch.update(doc.ref, { isDefault: false });
+                        });
+                    }
+                    if (selectedActionId === 'new') {
+                        const newDocRef = db.collection("versions").doc();
+                        batch.set(newDocRef, versionData);
+                    } else {
+                        const docRef = db.collection("versions").doc(selectedActionId);
+                        batch.update(docRef, versionData);
+                    }
+                    await batch.commit();
+                    alert(`Version "${newName}" sauvegardée avec succès !`);
+                    elements.saveModal.classList.add('hidden');
+                } catch (error) { console.error("Erreur:", error); alert("Erreur lors de la sauvegarde."); }
+            };
+
+            const deleteVersionFromFirestore = async () => {
+                const selectedId = elements.modalVersionsSelect.value;
+                if (!selectedId || selectedId === 'new') return;
+                const selectedOption = elements.modalVersionsSelect.options[elements.modalVersionsSelect.selectedIndex];
+                const versionName = selectedOption.text;
+                if (confirm(`Êtes-vous sûr de vouloir supprimer la version "${versionName}" ?`)) {
+                    try {
+                        await db.collection("versions").doc(selectedId).delete();
+                        alert(`Version "${versionName}" supprimée.`);
+                        setCurrentTasks(initialTasks);
+                        elements.saveModal.classList.add('hidden');
+                    } catch (error) { console.error("Erreur de suppression", error); }
+                }
+            };
+            
+            const listenForVersionsChanges = () => { 
+                db.collection("versions").orderBy("name").onSnapshot(snapshot => { 
+                    allVersions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    updateVersionsDropdown(allVersions);
+                }, error => console.error("ERREUR FIRESTORE:", error)); 
+            };
+            
+            const loadInitialTasks = async () => { 
+                try { 
+                    const snapshot = await db.collection("versions").where("isDefault", "==", true).limit(1).get(); 
+                    if (!snapshot.empty) { 
+                        const doc = snapshot.docs[0]; 
+                        setCurrentTasks(doc.data().tasks); 
+                        elements.versionsSelect.value = doc.id; 
+                        return; 
+                    } 
+                } catch (e) { console.error(e); } 
+                const saved = localStorage.getItem('ganttCurrentTasks'); 
+                setCurrentTasks(saved ? JSON.parse(saved) : initialTasks); 
+            };
+
+            document.getElementById('confirm-desc-btn').addEventListener('click', () => {
+                const id = elements.descModal.dataset.editingId;
+                const taskIndex = currentTasks.findIndex(t => t.id === id);
+                if (taskIndex > -1) {
+                    currentTasks[taskIndex].description = elements.descModalTextarea.value;
+                    localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
+                    elements.descModal.classList.add('hidden');
+                    updateChart(displayedTasks);
+                }
+            });
+            document.getElementById('cancel-desc-btn').addEventListener('click', () => elements.descModal.classList.add('hidden'));
+            
+            document.getElementById('manage-versions-btn').addEventListener('click', () => {
+                populateModalDropdown();
+                elements.modalVersionsSelect.value = 'new';
+                elements.versionNameInput.value = '';
+                elements.versionNameInput.placeholder = 'Nom de la nouvelle version...';
+                elements.confirmDeleteBtn.classList.add('hidden');
+                elements.defaultVersionWrapper.classList.add('hidden');
+                elements.saveModal.classList.remove('hidden');
+                elements.versionNameInput.focus();
+            });
+
+            elements.modalVersionsSelect.addEventListener('change', (event) => {
+                const selectedId = event.target.value;
+                if (selectedId === 'new') {
+                    elements.versionNameInput.value = '';
+                    elements.versionNameInput.placeholder = 'Nom de la nouvelle version...';
+                    elements.confirmDeleteBtn.classList.add('hidden');
+                    elements.defaultVersionWrapper.classList.add('hidden');
+                } else {
+                    const selectedVersion = allVersions.find(v => v.id === selectedId);
+                    if (selectedVersion) {
+                        elements.versionNameInput.value = selectedVersion.name;
+                        elements.setAsDefaultCheckbox.checked = selectedVersion.isDefault || false;
+                    }
+                    elements.confirmDeleteBtn.classList.remove('hidden');
+                    elements.defaultVersionWrapper.classList.remove('hidden');
+                }
+            });
+            
+            document.getElementById('confirm-save-btn').addEventListener('click', handleSaveOrUpdateVersion);
+            document.getElementById('cancel-save-btn').addEventListener('click', () => elements.saveModal.classList.add('hidden'));
+            elements.confirmDeleteBtn.addEventListener('click', deleteVersionFromFirestore);
+
+            elements.versionsSelect.addEventListener('change', () => loadVersionFromFirestore(elements.versionsSelect.value));
+            
+            document.getElementById('add-task-btn').addEventListener('click', () => {
+                const today = new Date().toISOString().split('T')[0];
+                const newProject = {
+                    id: `task_${new Date().getTime()}`, sponsor: sponsorFilter !== 'all' ? sponsorFilter : sponsors[0], name: 'Nouveau Projet',
+                    start: today, end: today, description: '', status: 'À faire'
+                };
+                currentTasks.push(newProject);
+                refreshUI();
+                localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
+            });
+
+            listenForVersionsChanges();
+            loadInitialTasks();
+        });
+    </script>
+</body>
+</html>
