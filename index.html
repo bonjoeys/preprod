@@ -897,7 +897,7 @@
             };
             
             const refreshUI = () => {
-                currentTasks.sort((a, b) => new Date(a.start) - new Date(b.start));
+                currentTasks.sort((a, b) => new Date(a.end) - new Date(b.end));
                 displayedTasks = applyFilters();
                 renderTable(displayedTasks); 
                 updateCharts(displayedTasks);
