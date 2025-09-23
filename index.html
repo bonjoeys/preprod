@@ -10,8 +10,12 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
 
+    <script src="https://unpkg.com/slim-select@latest/dist/slimselect.min.js"></script>
+    <link href="https://unpkg.com/slim-select@latest/dist/slimselect.css" rel="stylesheet"></link>
+
     <style>
         :root {
+            --sidebar-width: 260px;
             --nord0: #2e3440;
             --nord4: #d8dee9;
             --nord6: #eceff4;
@@ -26,77 +30,177 @@
             --nord15: #b48ead;
         }
 
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif; background-color: #f8f9fa; color: #3b4252; margin: 0; padding: 20px; }
-        .main-header { display: flex; align-items: center; gap: 25px; max-width: 1800px; margin: 0 auto 20px auto; }
-        .logo { height: 50px; object-fit: contain; }
-        h1 { text-align: left; color: var(--nord12); font-weight: 600; margin: 0; flex-grow: 1; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif; 
+            background-color: #f8f9fa; 
+            color: #3b4252; 
+            margin: 0; 
+        }
+
+        /* === STRUCTURE : SIDEBAR & CONTENT === */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: var(--sidebar-width);
+            background-color: var(--nord0);
+            color: var(--nord6);
+            padding: 20px;
+            box-sizing: border-box;
+            transition: transform 0.3s ease-in-out;
+            z-index: 200;
+            overflow-y: auto;
+        }
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 20px;
+            transition: margin-left 0.3s ease-in-out;
+        }
+        
+        body.sidebar-collapsed .sidebar {
+            transform: translateX(calc(-1 * var(--sidebar-width)));
+        }
+        body.sidebar-collapsed .main-content {
+            margin-left: 0;
+        }
+
+        .sidebar h2 {
+            text-align: center;
+            color: var(--nord8);
+            margin-top: 0;
+        }
+
+        .tabs-nav { 
+            display: flex; 
+            flex-direction: column;
+            gap: 5px;
+        }
+        .tab-link { 
+            padding: 12px 15px; 
+            cursor: pointer; 
+            border: none; 
+            background-color: transparent; 
+            font-size: 1.0em; 
+            color: var(--nord4);
+            border-radius: 6px;
+            display: flex; 
+            align-items: center; 
+            gap: 12px;
+            text-align: left;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .tab-link.active { 
+            background-color: var(--nord10);
+            color: var(--nord6); 
+            font-weight: 600; 
+        }
+        .tab-link:hover { 
+            background-color: #3b4252;
+        }
+        
+        .top-bar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px 20px;
+            background-color: #fff;
+            border-bottom: 1px solid var(--nord4);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .sidebar-toggle {
+            font-size: 1.8em;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: var(--nord0);
+        }
+
+        /* === FIN STRUCTURE === */
+        
+        /* === Animation de fondu === */
+        .content-tab {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .main-header { display: flex; align-items: center; gap: 25px; max-width: 1800px; margin: 0 auto; flex-grow: 1; }
+        .logo { 
+            max-height: 40px;
+            max-width: 120px;
+            object-fit: contain;
+        }
+        h1 { text-align: left; color: var(--nord12); font-weight: 600; margin: 0; flex-grow: 1; font-size: 1.5em; }
         h1 span.version-tag { font-size: 0.5em; color: #4c566a; font-weight: normal; vertical-align: middle; }
         .logo-group-right { display: flex; align-items: center; gap: 20px; }
         .page-container { display: flex; flex-direction: column; gap: 30px; max-width: 1800px; margin: 0 auto; }
-        .controls-container, .gantt-container, .versions-manager, .workload-container, .dashboard-container, .docs-container, .accueil-container { background-color: #ffffff; padding: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid var(--nord4); }
-        .versions-manager { max-width: 1800px; margin: 0 auto 30px auto; padding: 25px 30px; }
-        .controls-container h2, .versions-manager h3, .dashboard-container h2 { margin-top: 0; font-size: 1.4em; color: var(--nord0); }
-        .versions-manager h3 { font-size: 1.1em; color: #434c5e;}
+        .controls-container, .gantt-container, .versions-manager-container, .workload-container, .dashboard-container, .docs-container, .accueil-container, .timeline-container { background-color: #ffffff; padding: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid var(--nord4); }
+        .versions-manager-container { max-width: 1800px; margin: 20px auto 0 auto; padding: 25px 30px; }
+        .controls-container h2, .versions-manager-container h3, .dashboard-container h2 { margin-top: 0; font-size: 1.4em; color: var(--nord0); }
+        .versions-manager-container h3 { font-size: 1.1em; color: #434c5e;}
 
-        .tabs-nav { display: flex; border-bottom: 2px solid var(--nord4); margin-bottom: 30px; flex-wrap: wrap; }
-        .tab-link { padding: 12px 20px; cursor: pointer; border: none; background-color: transparent; font-size: 1.1em; color: #4c566a; border-bottom: 3px solid transparent; margin-bottom: -2px; display: flex; align-items: center; gap: 8px; }
-        .tab-link.active { color: var(--nord10); border-bottom-color: var(--nord10); font-weight: 600; }
-        .tab-link:hover { background-color: var(--nord6); }
+        .chart-comment { color: #4c566a; text-align: center; margin-top: 20px; font-style: italic; max-width: 800px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+        .chart-comment .comment-line-2 { font-size: 0.9em; opacity: 0.8; }
         
-        .chart-comment { color: #4c566a; text-align: center; margin-top: 20px; font-style: italic; max-width: 800px; margin-left: auto; margin-right: auto; }
-        
-        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .chart-filter-container { max-width: 250px; }
-        .chart-filter-container label { display: block; font-weight: 500; color: #4c566a; margin-bottom: 5px; font-size: 0.9em; }
+        .chart-header, .planning-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .filter-controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filter-group {
+            min-width: 220px;
+        }
+        .filter-group label { display: block; font-weight: 500; color: #4c566a; margin-bottom: 5px; font-size: 0.9em; }
 
         .chart-counter { font-size: 1.1em; color: var(--nord12); font-weight: 500; white-space: nowrap; }
 
         #tasks-table { width: 100%; border-collapse: collapse; }
-        #tasks-table th, #tasks-table td { padding: 8px; text-align: left; vertical-align: top; }
+        #tasks-table th, #tasks-table td { padding: 12px 8px; text-align: left; vertical-align: middle; }
         #tasks-table tbody tr { border-bottom: 1px solid var(--nord6); }
         #tasks-table th { font-size: 0.9em; text-transform: uppercase; color: #4c566a; padding-bottom: 12px; font-weight: 600; }
-        #tasks-table th.center-header { text-align: center; }
-        #tasks-table td.delete-cell { vertical-align: middle; text-align: center; }
-        .delete-row-btn { background: none; border: none; color: var(--nord11); font-size: 1.6em; cursor: pointer; padding: 4px 8px; opacity: 0.7; transition: opacity 0.2s, color 0.2s; line-height: 1; border-radius: 4px; }
-        .delete-row-btn:hover { opacity: 1; color: var(--nord12); background-color: var(--nord6); }
+        .action-cell { text-align: center; }
 
-        #tasks-table td.task-name-cell { vertical-align: middle; }
-        #tasks-table td.task-name-cell input { text-align: left; flex-grow: 1; border-color: transparent; background-color: transparent; }
-        #tasks-table td.task-name-cell input:hover { border-color: var(--nord4); }
-        #tasks-table td.task-name-cell input:focus { border-color: var(--nord10); outline: none; }
-        #tasks-table td.task-duration { text-align: center; font-weight: 500; color: #4c566a; white-space: nowrap; vertical-align: middle; }
-        #tasks-table input, #tasks-table select { width: 100%; padding: 8px; border: 1px solid var(--nord4); border-radius: 6px; font-family: inherit; font-size: 14px; box-sizing: border-box; }
-        #tasks-table input[type="date"], #tasks-table select { text-align: center; }
-        
-        #tasks-table .filter-row th { padding-bottom: 15px; padding-top: 5px; }
         .header-filter { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--nord4); background-color: #f8f9fa; }
-        .header-filter:focus { background-color: #fff; border-color: var(--nord10); outline: none; }
         
         #tasks-table .project-counter-sync { text-align: right; vertical-align: middle; font-size: 1.1em; color: var(--nord12); font-weight: 500; padding-right: 10px; white-space: nowrap; text-transform: none; }
 
-        .edit-desc-btn { background-color: var(--nord6); border: none; color: #4c566a; padding: 8px 12px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 13px; font-weight: 500; }
-        .edit-desc-btn:hover { background-color: var(--nord4); }
+        .edit-task-btn { background-color: var(--nord6); border: none; color: #4c566a; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
+        .edit-task-btn:hover { background-color: var(--nord4); }
+        .delete-row-btn { background: none; border: none; color: var(--nord11); font-size: 1.6em; cursor: pointer; padding: 4px 8px; opacity: 0.7; transition: opacity 0.2s, color 0.2s; line-height: 1; border-radius: 4px; }
+        .delete-row-btn:hover { opacity: 1; color: var(--nord12); background-color: var(--nord6); }
 
         #versions-select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--nord4); background-color: #fff; font-size: 15px; }
-        .button { display: block; flex: 1; width: 100%; padding: 12px; margin-top: 10px; color: #ffffff; border: none; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; text-align: center; }
+        .button { display: inline-block; flex: none; width: auto; padding: 12px 18px; margin-top: 10px; color: #ffffff; border: none; border-radius: 6px; font-size: 15px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; text-align: center; }
         .save-button { background-color: var(--nord14); } .save-button:hover { background-color: #b5d5a2; }
         .delete-button { background-color: var(--nord12); } .delete-button:hover { background-color: #e59a85; }
         .cancel-button { background-color: var(--nord11); } .cancel-button:hover { background-color: #d08770; }
         .add-button { background-color: var(--nord10); } .add-button:hover { background-color: var(--nord9); }
+        .button-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
         
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: #fff; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal-content { background: #fff; padding: 30px; border-radius: 12px; width: 90%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         .modal-content h3 { margin-top: 0; }
         .modal-content label { display: block; margin-top: 15px; font-weight: 500; color: #4c566a; }
-        .modal-content input, .modal-content select { width: 100%; padding: 10px; font-size: 1em; margin-top: 5px; border: 1px solid var(--nord4); border-radius: 6px; box-sizing: border-box; }
+        .modal-content input, .modal-content select, .modal-content textarea { width: 100%; padding: 10px; font-size: 1em; margin-top: 5px; border: 1px solid var(--nord4); border-radius: 6px; box-sizing: border-box; }
         .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-        .modal-actions .button { margin-top: 0; }
-        #desc-modal-textarea { width: 100%; font-size: 1em; margin-top: 5px; border: 1px solid var(--nord4); border-radius: 6px; box-sizing: border-box; resize: vertical; padding: 10px; }
-        #desc-modal-project-name { font-weight: bold; color: var(--nord0); }
+        .modal-actions .button { margin-top: 0; flex: 1; }
         .hidden { display: none; }
-        .default-version-wrapper { display: flex; align-items: center; margin-top: 15px; }
-        .default-version-wrapper input { width: auto; margin-right: 10px; }
-        .default-version-wrapper label { margin: 0; }
         
         .accueil-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; margin-top: 20px; }
         .accueil-card { background-color: var(--nord6); padding: 25px; border-radius: 10px; text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border: 1px solid var(--nord4); position: relative; }
@@ -104,19 +208,31 @@
         .accueil-card-icon { font-size: 3em; margin-bottom: 15px; }
         .accueil-card h3 { margin: 0; font-size: 1.3em; color: var(--nord0); }
 
-        .docs-container h3 { color: var(--nord10); border-bottom: 2px solid var(--nord6); padding-bottom: 10px; margin-top: 30px; }
+        .docs-container h3, .docs-container h4 { color: var(--nord10); border-bottom: 2px solid var(--nord6); padding-bottom: 10px; margin-top: 30px; }
+        .docs-container h4 { font-size: 1.2em; border-bottom-style: dotted; }
         .docs-container p, .docs-container li { line-height: 1.6; color: #4c566a; }
         .docs-container ul { padding-left: 20px; }
         
         .dashboard-container .chart-comment { text-align: left; margin-left: 0; }
 
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .kpi-card { background-color: var(--nord6); padding: 20px; border-radius: 10px; border: 1px solid var(--nord4); position: relative; }
+        .kpi-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px; 
+            margin-bottom: 30px; 
+        }
+        .kpi-card { background-color: var(--nord6); padding: 20px; border-radius: 10px; border: 1px solid var(--nord4); position: relative; display: flex; flex-direction: column; justify-content: space-between; }
         .kpi-card.clickable { cursor: pointer; transition: background-color 0.2s; }
         .kpi-card.clickable:hover { background-color: var(--nord4); }
         .kpi-card.tooltip-enabled { cursor: help; }
         .kpi-card h3 { font-size: 1.1em; color: #4c566a; margin: 0 0 10px 0; font-weight: 500; }
-        .kpi-value { font-size: 2.5em; font-weight: 600; color: var(--nord0); margin: 0; }
+        .kpi-value { 
+            font-size: clamp(1.1em, 4vw, 2.2em);
+            font-weight: 600; 
+            color: var(--nord0); 
+            margin: 0;
+            line-height: 1.1;
+        }
         .kpi-card.late { background-color: #ffefef; border-color: var(--nord11); }
         .kpi-card.late .kpi-value { color: var(--nord11); }
         .mini-chart-container { grid-column: 1 / -1; min-height: 350px; cursor: default; }
@@ -151,6 +267,22 @@
             border-style: solid;
             border-color: var(--nord0) transparent transparent transparent;
         }
+        
+        .apexcharts-tooltip.sponsor-tooltip {
+            background: var(--nord0);
+            color: var(--nord6);
+            border: none;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            padding: 10px 15px;
+        }
+        .sponsor-tooltip ul {
+            padding-left: 18px;
+            margin: 5px 0 0 0;
+        }
+        .sponsor-tooltip li {
+            margin-bottom: 4px;
+        }
+
 
         .accueil-card:hover .tooltip-text-accueil, .kpi-card:hover .tooltip-text {
             visibility: visible;
@@ -176,238 +308,516 @@
             color: #4c566a;
             font-size: 0.9em;
         }
+        
+        /* === STYLES TIMELINE VERTICALE === */
+        .timeline-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+        .timeline-wrapper {
+            position: relative;
+            padding: 20px 0;
+            margin: 0 auto;
+            max-width: 1000px;
+        }
+        .timeline-wrapper::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background-color: var(--nord8);
+            transform: translateX(-50%);
+        }
+        .timeline-item {
+            padding: 10px 40px;
+            position: relative;
+            width: 50%;
+            box-sizing: border-box;
+        }
+        .timeline-item:nth-child(odd) {
+            left: 0;
+            padding-right: 25px;
+            text-align: right;
+        }
+        .timeline-item:nth-child(even) {
+            left: 50%;
+            padding-left: 25px;
+            text-align: left;
+        }
+        .timeline-dot {
+            content: '';
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: #fff;
+            border: 3px solid var(--nord10);
+            border-radius: 50%;
+            top: 35px;
+            z-index: 1;
+        }
+        .timeline-item:nth-child(odd) .timeline-dot {
+            right: -7.5px;
+            transform: translate(50%, -50%);
+        }
+        .timeline-item:nth-child(even) .timeline-dot {
+            left: -7.5px;
+            transform: translate(-50%, -50%);
+        }
+        .timeline-content {
+            padding: 20px;
+            background-color: var(--nord6);
+            border-radius: 8px;
+            border: 1px solid var(--nord4);
+            position: relative;
+        }
+        .timeline-content.status-termine { border-left: 5px solid var(--nord14); }
+        .timeline-content.status-en-cours { border-left: 5px solid var(--nord12); }
+        .timeline-content.status-a-faire { border-left: 5px solid var(--nord13); }
 
-        @media print { @page { size: A4 landscape; margin: 1cm; } .controls-container, .versions-manager, .main-header, .tabs-nav, .workload-container, .chart-header { display: none; } .page-container { flex-direction: column; align-items: flex-start; max-width: 100%; gap: 0; } .gantt-container { width: 100%; max-width: 100%; flex: auto; box-shadow: none; border: none; } .gantt-container.hidden { display: block !important; } }
+        .timeline-item:nth-child(even) .timeline-content.status-termine { border-left: 5px solid var(--nord14); border-right: none; }
+        .timeline-item:nth-child(odd) .timeline-content.status-termine { border-right: 5px solid var(--nord14); border-left: none; }
+        .timeline-item:nth-child(even) .timeline-content.status-en-cours { border-left: 5px solid var(--nord12); border-right: none; }
+        .timeline-item:nth-child(odd) .timeline-content.status-en-cours { border-right: 5px solid var(--nord12); border-left: none; }
+        .timeline-item:nth-child(even) .timeline-content.status-a-faire { border-left: 5px solid var(--nord13); border-right: none; }
+        .timeline-item:nth-child(odd) .timeline-content.status-a-faire { border-right: 5px solid var(--nord13); border-left: none; }
+
+        .timeline-content h3 { margin: 0 0 10px 0; font-size: 1.2em; color: var(--nord0); }
+        .timeline-content .sponsor-tag { font-weight: bold; color: var(--nord10); display: block; margin-bottom: 5px; }
+        .timeline-content .date-range { font-size: 0.9em; color: #4c566a; margin-bottom: 10px; display: block; }
+        .timeline-content p { margin: 0; font-size: 0.95em; line-height: 1.5; }
+
+        @media screen and (max-width: 900px) {
+            .timeline-wrapper::before {
+                left: 20px;
+            }
+            .timeline-item, .timeline-item:nth-child(even) {
+                width: 100%;
+                left: 0;
+                padding-left: 60px;
+                padding-right: 15px;
+                text-align: left;
+            }
+            .timeline-item:nth-child(odd) {
+                text-align: left;
+            }
+            .timeline-dot, .timeline-item:nth-child(odd) .timeline-dot, .timeline-item:nth-child(even) .timeline-dot {
+                left: 20px;
+                transform: translate(-50%, -50%);
+            }
+        }
+        /* === FIN STYLES TIMELINE === */
+
+
+        @media print { 
+            @page { 
+                size: A4 landscape; 
+                margin: 1.5cm; 
+            }
+            body * { 
+                visibility: hidden; 
+            }
+            .printable-area, .printable-area * { 
+                visibility: visible; 
+            }
+            .printable-area { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+            }
+            .printable-area .planning-header,
+            .printable-area .button-group,
+            .printable-area .action-cell {
+                display: none;
+            }
+            #tasks-table th, #tasks-table td { 
+                font-size: 10px; 
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="main-header">
-        <img src="SGS_Logo.svg.png" alt="Logo SGS" class="logo">
-        <h1>Roadmap des projets <span class="version-tag">v1.5.0</span></h1>
-        <div class="logo-group-right">
-            <img src="securitest.png" alt="Logo Securitest" class="logo">
-            <img src="auto-securite.png" alt="Logo Auto Sécurité" class="logo">
-            <img src="verifautos.jpg" alt="Logo Verif'autos" class="logo">
-        </div>
-    </div>
-    <div class="versions-manager">
-        <h3>Charger une version</h3>
-        <select id="versions-select">
-            <option value="">-- Chargement des versions... --</option>
-        </select>
-    </div>
-    <div class="page-container">
+    <div class="sidebar" id="sidebar">
+        <h2>Navigation</h2>
         <div class="tabs-nav">
             <button class="tab-link active" data-tab="accueil-container">🏠 Accueil</button>
             <button class="tab-link" data-tab="dashboard-container">📊 Tableau de Bord</button>
             <button class="tab-link" data-tab="controls-container">📝 Planning & Saisie</button>
             <button class="tab-link" data-tab="gantt-container">📊 Vue Gantt</button>
+            <button class="tab-link" data-tab="timeline-container">⏳ Timeline Verticale</button>
             <button class="tab-link" data-tab="workload-container">📈 Analyse de charge</button>
             <button class="tab-link" data-tab="status-split-container">🚦 Répartition par statut</button>
             <button class="tab-link" data-tab="sponsor-split-container">👥 Projets par sponsor</button>
             <button class="tab-link" data-tab="sponsor-status-container">🚀 Avancement par sponsor</button>
             <button class="tab-link" data-tab="docs-container">📖 Documentation</button>
         </div>
+    </div>
 
-        <div id="accueil-container" class="accueil-container content-tab">
-             <div class="accueil-grid">
-                <div class="accueil-card" data-tab="dashboard-container">
-                    <div class="accueil-card-icon">📊</div>
-                    <h3>Tableau de Bord</h3>
-                    <span class="tooltip-text-accueil">Vue synthétique des indicateurs clés (KPIs) du portefeuille de projets.</span>
-                </div>
-                <div class="accueil-card" data-tab="controls-container">
-                    <div class="accueil-card-icon">📝</div>
-                    <h3>Planning & Saisie</h3>
-                    <span class="tooltip-text-accueil">Interface pour ajouter, modifier et supprimer les projets de la roadmap.</span>
-                </div>
-                <div class="accueil-card" data-tab="gantt-container">
-                    <div class="accueil-card-icon">📊</div>
-                    <h3>Vue Gantt</h3>
-                    <span class="tooltip-text-accueil">Diagramme chronologique pour visualiser la durée et le chevauchement des projets.</span>
-                </div>
-                <div class="accueil-card" data-tab="workload-container">
-                    <div class="accueil-card-icon">📈</div>
-                    <h3>Analyse de charge</h3>
-                    <span class="tooltip-text-accueil">Graphique montrant le nombre de projets actifs simultanément dans le temps.</span>
-                </div>
-                <div class="accueil-card" data-tab="status-split-container">
-                    <div class="accueil-card-icon">🚦</div>
-                    <h3>Répartition par statut</h3>
-                    <span class="tooltip-text-accueil">Vue d'ensemble de la proportion des projets 'À faire', 'En cours' et 'Terminés'.</span>
-                </div>
-                <div class="accueil-card" data-tab="sponsor-split-container">
-                    <div class="accueil-card-icon">👥</div>
-                    <h3>Projets par sponsor</h3>
-                    <span class="tooltip-text-accueil">Classement des sponsors selon le nombre de projets qu'ils portent.</span>
-                </div>
-                <div class="accueil-card" data-tab="sponsor-status-container">
-                    <div class="accueil-card-icon">🚀</div>
-                    <h3>Avancement par sponsor</h3>
-                    <span class="tooltip-text-accueil">Analyse détaillée de l'avancement des projets pour chaque sponsor.</span>
-                </div>
-                <div class="accueil-card" data-tab="docs-container">
-                    <div class="accueil-card-icon">📖</div>
-                    <h3>Documentation</h3>
-                    <span class="tooltip-text-accueil">Guide d'utilisation et explication des fonctionnalités de l'application.</span>
-                </div>
-            </div>
-        </div>
-        
-        <div id="dashboard-container" class="dashboard-container content-tab hidden">
-            <h2>Tableau de Bord Synthétique</h2>
-            <div class="kpi-grid">
-                <div class="kpi-card clickable" id="kpi-card-total">
-                    <h3>Total Projets</h3>
-                    <p class="kpi-value" id="kpi-total-projects">0</p>
-                    <span class="tooltip-text">Nombre total de projets chargés dans la version actuelle de la roadmap.</span>
-                </div>
-                <div class="kpi-card late clickable" id="kpi-card-late">
-                    <h3>Projets en Retard</h3>
-                    <p class="kpi-value" id="kpi-late-projects">0</p>
-                    <span class="tooltip-text">Nombre de projets dont la date de fin est dépassée et dont le statut n'est pas 'Terminé'.</span>
-                </div>
-                <div class="kpi-card clickable" id="kpi-card-in-progress">
-                    <h3>En Cours</h3>
-                    <p class="kpi-value" id="kpi-in-progress">0</p>
-                    <span class="tooltip-text">Nombre de projets ayant actuellement le statut 'En cours'.</span>
-                </div>
-                <div class="kpi-card tooltip-enabled">
-                    <h3>Sponsor le plus actif</h3>
-                    <p class="kpi-value" id="kpi-top-sponsor">N/A</p>
-                    <span class="tooltip-text">Le sponsor ayant le plus grand nombre de projets, tous statuts confondus.</span>
-                </div>
-                <div class="kpi-card mini-chart-container">
-                     <h3>Répartition par Statut</h3>
-                     <div id="mini-status-chart"></div>
+    <div class="main-content" id="main-content">
+        <div class="top-bar">
+            <button class="sidebar-toggle" id="sidebar-toggle">☰</button>
+            <div class="main-header">
+                <img src="SGS_Logo.svg.png" alt="Logo SGS" class="logo">
+                <h1>Roadmap des projets <span class="version-tag">v3.3.1</span></h1>
+                <div class="logo-group-right">
+                    <img src="securitest.png" alt="Logo Securitest" class="logo">
+                    <img src="auto-securite.png" alt="Logo Auto Sécurité" class="logo">
+                    <img src="verifautos.jpg" alt="Logo Verif'autos" class="logo">
                 </div>
             </div>
         </div>
 
-        <div id="docs-container" class="docs-container content-tab hidden">
-            <h2>Documentation de l'application Roadmap Projets (v1.5.0)</h2>
-            <h3>1. Objectif de l'application</h3>
-            <p>Cette application a été conçue pour offrir une vue claire et dynamique de l'ensemble des projets gérés par la direction digitale pour ses différents sponsors. Elle sert d'outil central pour la planification, le suivi et l'analyse de la charge de travail.</p>
-            
-            <h3>2. Fonctionnalités générales</h3>
-            <ul>
-                <li><strong>Gestion des versions :</strong> Vous pouvez sauvegarder différentes versions de la roadmap (par exemple, une par trimestre). Le menu déroulant en haut de page permet de charger une version existante.</li>
-                <li><strong>Filtres dynamiques :</strong> La plupart des vues peuvent être filtrées par "Sponsor" pour affiner l'analyse. Les filtres sont synchronisés entre les onglets.</li>
-                <li><strong>Sauvegarde en temps réel :</strong> Toutes les modifications (changement de date, de nom, etc.) sont prises en compte instantanément. Pour les sauvegarder sur le long terme, il faut créer ou mettre à jour une version via le bouton "Gérer les versions".</li>
-            </ul>
-
-            <h3>3. Détail des vues (onglets)</h3>
-            
-            <h3>🏠 Accueil</h3>
-            <p>C'est la porte d'entrée de l'application. Chaque carte est un raccourci cliquable qui vous amène directement à l'onglet correspondant pour une navigation intuitive.</p>
-
-            <h3>📊 Tableau de Bord</h3>
-            <p>Cet écran offre une vue d'ensemble managériale avec des indicateurs de performance clés (KPIs). Il permet de prendre le pouls du portefeuille de projets en un coup d'œil.</p>
-            <ul>
-                <li><strong>Cartes d'indicateurs :</strong> Affichent le nombre total de projets, les projets en retard, ceux en cours, et le sponsor le plus actif.</li>
-                <li><strong>Interactivité :</strong> Les cartes "Total Projets", "Projets en Retard" et "En Cours" sont cliquables. Un clic ouvre une fenêtre affichant la liste détaillée des projets concernés.</li>
-                <li><strong>Info-bulles :</strong> Survolez une carte pour obtenir une explication claire sur ce que l'indicateur représente.</li>
-            </ul>
-
-            <h3>📝 Planning & Saisie</h3>
-            <p>C'est l'écran principal pour la gestion des données. Vous pouvez y :</p>
-            <ul>
-                <li><strong>Ajouter un projet :</strong> Via le bouton "Ajouter un projet".</li>
-                <li><strong>Modifier un projet :</strong> En cliquant directement dans les champs (Sponsor, Projet, Début, Fin, Statut).</li>
-                <li><strong>Supprimer un projet :</strong> En cliquant sur l'icône "×" au début de chaque ligne.</li>
-                <li><strong>Ajouter une description :</strong> Le bouton "Détails" ouvre une fenêtre pour ajouter une description plus complète du projet, qui sera visible dans la vue Gantt.</li>
-            </ul>
-
-            <h3>📊 Vue Gantt</h3>
-            <p>Cette vue offre une représentation chronologique des projets sous forme de diagramme de Gantt. Chaque barre représente la durée d'un projet. La ligne rouge verticale indique la date du jour, permettant de voir immédiatement les projets en retard.</p>
-            
-            <h3>📈 Analyse de charge</h3>
-            <p>Ce graphique montre le nombre de projets actifs simultanément pour chaque jour. C'est un excellent indicateur pour visualiser les périodes de forte charge et anticiper les éventuels goulets d'étranglement.</p>
-            
-            <h3>🚦 Répartition par statut</h3>
-            <p>Ce graphique en Donut montre la proportion de projets "À faire", "En cours" et "Terminés". Il offre une vue synthétique de l'avancement global du portefeuille de projets.</p>
-
-            <h3>👥 Projets par sponsor</h3>
-            <p>Ce diagramme à barres classe les sponsors en fonction du nombre de projets qu'ils ont soumis. Ce graphique mesure la demande de chaque sponsor auprès de l'équipe digitale.</p>
-
-            <h3>🚀 Avancement par sponsor</h3>
-            <p>C'est la vue la plus riche en informations. Elle combine les deux précédentes en montrant pour chaque sponsor la répartition de ses projets par statut. On peut ainsi voir non seulement qui a le plus de projets, mais aussi la dynamique d'avancement de chaque sponsor.</p>
+        <div class="versions-manager-container">
+            <h3>Charger une version</h3>
+            <select id="versions-select">
+                <option value="">-- Chargement des versions... --</option>
+            </select>
         </div>
-
-        <div id="status-split-container" class="content-tab hidden">
-            <div id="status-split-chart"></div>
-            <p class="chart-comment">Ce graphique montre la proportion de projets "À faire", "En cours" et "Terminés" sur l'ensemble du portefeuille. </p>
-        </div>
-        
-        <div id="sponsor-split-container" class="content-tab hidden">
-             <div id="sponsor-split-chart"></div>
-             <p class="chart-comment">Ce diagramme à barres mesure la demande de chaque sponsor auprès de l'équipe digitale.</p>
-        </div>
-
-        <div id="sponsor-status-container" class="content-tab hidden">
-             <div id="sponsor-status-chart"></div>
-             <p class="chart-comment">Ce graphique combine le nombre de projets par sponsor avec leur statut d'avancement. Il permet d'évaluer à la fois la charge de travail et la dynamique de chaque sponsor.</p>
-        </div>
-
-        <div id="gantt-container" class="gantt-container content-tab hidden">
-            <div class="chart-header">
-                <div class="chart-filter-container">
-                    <label for="sponsor-filter-gantt">Filtre Sponsor Actif</label>
-                    <select id="sponsor-filter-gantt" class="header-filter sponsor-filter-sync"></select>
+        <div class="page-container">
+            <div id="accueil-container" class="accueil-container content-tab">
+                 <div class="accueil-grid">
+                    <div class="accueil-card" data-tab="dashboard-container">
+                        <div class="accueil-card-icon">📊</div>
+                        <h3>Tableau de Bord</h3>
+                        <span class="tooltip-text-accueil">Vue synthétique des indicateurs clés (KPIs) du portefeuille de projets.</span>
+                    </div>
+                    <div class="accueil-card" data-tab="controls-container">
+                        <div class="accueil-card-icon">📝</div>
+                        <h3>Planning & Saisie</h3>
+                        <span class="tooltip-text-accueil">Interface pour ajouter, modifier et supprimer les projets de la roadmap.</span>
+                    </div>
+                    <div class="accueil-card" data-tab="gantt-container">
+                        <div class="accueil-card-icon">📊</div>
+                        <h3>Vue Gantt</h3>
+                        <span class="tooltip-text-accueil">Diagramme chronologique pour visualiser la durée et le chevauchement des projets.</span>
+                    </div>
+                     <div class="accueil-card" data-tab="timeline-container">
+                        <div class="accueil-card-icon">⏳</div>
+                        <h3>Timeline Verticale</h3>
+                        <span class="tooltip-text-accueil">Visualisation chronologique des projets sous forme d'un fil d'évènements.</span>
+                    </div>
+                    <div class="accueil-card" data-tab="workload-container">
+                        <div class="accueil-card-icon">📈</div>
+                        <h3>Analyse de charge</h3>
+                        <span class="tooltip-text-accueil">Graphique montrant le nombre de projets actifs simultanément dans le temps.</span>
+                    </div>
+                    <div class="accueil-card" data-tab="status-split-container">
+                        <div class="accueil-card-icon">🚦</div>
+                        <h3>Répartition par statut</h3>
+                        <span class="tooltip-text-accueil">Vue d'ensemble de la proportion des projets 'À faire', 'En cours' et 'Terminés'.</span>
+                    </div>
+                    <div class="accueil-card" data-tab="sponsor-split-container">
+                        <div class="accueil-card-icon">👥</div>
+                        <h3>Projets par sponsor</h3>
+                        <span class="tooltip-text-accueil">Classement des sponsors selon le nombre de projets qu'ils portent.</span>
+                    </div>
+                    <div class="accueil-card" data-tab="sponsor-status-container">
+                        <div class="accueil-card-icon">🚀</div>
+                        <h3>Avancement par sponsor</h3>
+                        <span class="tooltip-text-accueil">Analyse détaillée de l'avancement des projets pour chaque sponsor.</span>
+                    </div>
+                    <div class="accueil-card" data-tab="docs-container">
+                        <div class="accueil-card-icon">📖</div>
+                        <h3>Documentation</h3>
+                        <span class="tooltip-text-accueil">Guide d'utilisation et explication des fonctionnalités de l'application.</span>
+                    </div>
                 </div>
-                <p id="gantt-counter" class="project-counter-sync chart-counter" style="text-align: right; width: 100%;"></p>
             </div>
-            <div id="gantt-chart"></div>
-            <p class="chart-comment">Ce diagramme de Gantt illustre la chronologie des projets. Chaque barre représente la durée d'un projet, de sa date de début à sa date de fin.</p>
-        </div>
-        <div id="workload-container" class="workload-container content-tab hidden">
-            <div class="chart-header">
-                <div class="chart-filter-container">
-                    <label for="sponsor-filter-workload">Filtre Sponsor Actif</label>
-                    <select id="sponsor-filter-workload" class="header-filter sponsor-filter-sync"></select>
+            
+            <div id="dashboard-container" class="dashboard-container content-tab hidden">
+                <h2>Tableau de Bord Synthétique</h2>
+                <div class="kpi-grid">
+                    <div class="kpi-card clickable" id="kpi-card-total">
+                        <h3>Total Projets</h3>
+                        <p class="kpi-value" id="kpi-total-projects">0</p>
+                        <span class="tooltip-text">Nombre total de projets chargés dans la version actuelle de la roadmap.</span>
+                    </div>
+                    <div class="kpi-card late clickable" id="kpi-card-late">
+                        <h3>Projets en Retard</h3>
+                        <p class="kpi-value" id="kpi-late-projects">0</p>
+                        <span class="tooltip-text">Nombre de projets dont la date de fin est dépassée et dont le statut n'est pas 'Terminé'.</span>
+                    </div>
+                    <div class="kpi-card clickable" id="kpi-card-in-progress">
+                        <h3>En Cours</h3>
+                        <p class="kpi-value" id="kpi-in-progress">0</p>
+                        <span class="tooltip-text">Nombre de projets ayant actuellement le statut 'En cours'.</span>
+                    </div>
+                    <div class="kpi-card tooltip-enabled">
+                        <h3>Sponsor le plus actif</h3>
+                        <p class="kpi-value" id="kpi-top-sponsor">N/A</p>
+                        <span class="tooltip-text">Le sponsor ayant le plus grand nombre de projets, tous statuts confondus.</span>
+                    </div>
+                    <div class="kpi-card mini-chart-container">
+                         <h3>Répartition par Statut</h3>
+                         <div id="mini-status-chart"></div>
+                    </div>
                 </div>
-                <p id="workload-counter" class="project-counter-sync chart-counter" style="text-align: right; width: 100%;"></p>
             </div>
-            <div id="workload-chart"></div>
-            <p class="chart-comment">Ce graphique représente le nombre de projets actifs simultanément pour chaque jour de la période couverte par la roadmap.</p>
+
+            <div id="docs-container" class="docs-container content-tab hidden">
+                <h2>Documentation de l'application Roadmap Projets (v3.3.1)</h2>
+                <h3>1. Objectif de l'application</h3>
+                <p>Cette application a été conçue pour offrir une vue claire et dynamique de l'ensemble des projets gérés par la direction digitale pour ses différents sponsors. Elle sert d'outil central pour la planification, le suivi et l'analyse de la charge de travail.</p>
+                
+                <h3>2. Fonctionnalités générales</h3>
+                <ul>
+                    <li><strong>Navigation :</strong> L'application utilise maintenant un menu latéral rétractable. Cliquez sur l'icône ☰ en haut à gauche pour afficher ou masquer le menu et gagner de l'espace.</li>
+                    <li><strong>Gestion des versions :</strong> Vous pouvez sauvegarder différentes versions de la roadmap (par exemple, une par trimestre). Le menu déroulant en haut de page permet de charger une version existante.</li>
+                    <li><strong>Filtres dynamiques :</strong> La plupart des vues peuvent être filtrées par "Sponsor" pour affiner l'analyse. Les filtres sont synchronisés entre les onglets.</li>
+                </ul>
+
+                <h3>3. Détail des vues (onglets)</h3>
+                
+                <h3>🏠 Accueil</h3>
+                <p>C'est la porte d'entrée de l'application. Chaque carte est un raccourci cliquable qui vous amène directement à l'onglet correspondant pour une navigation intuitive.</p>
+
+                <h3>📊 Tableau de Bord</h3>
+                <p>Cet écran offre une vue d'ensemble managériale avec des indicateurs de performance clés (KPIs).</p>
+                
+                <h3>📝 Planning & Saisie</h3>
+                <p>C'est l'écran principal pour la gestion des données. Les contrôles de filtre et de tri sont maintenant unifiés avec les autres vues.</p>
+                <ul>
+                    <li><strong>Ajouter un projet :</strong> Le bouton "Ajouter un projet" ouvre un formulaire dédié.</li>
+                    <li><strong>Modifier un projet :</strong> Cliquez sur le bouton "Modifier" sur chaque ligne pour ouvrir le formulaire pré-rempli.</li>
+                    <li><strong>Supprimer un projet :</strong> L'icône "×" reste disponible pour une suppression rapide.</li>
+                    <li><strong>Gestion des versions :</strong> Les actions de sauvegarde, création et suppression de versions sont accessibles via des boutons directs sous le tableau.</li>
+                </ul>
+
+                <h3>📊 Vue Gantt</h3>
+                <p>Cette vue offre une représentation chronologique des projets sous forme de diagramme de Gantt.</p>
+
+                <h3>⏳ Timeline Verticale</h3>
+                <p>Cette vue alternative affiche les projets le long d'un axe vertical, classés par date de fin.</p>
+                
+                <h3>📈 Analyse de charge</h3>
+                <p>Ce graphique montre le nombre de projets actifs simultanément pour chaque jour.</p>
+                
+                <h3>🚦 Répartition par statut</h3>
+                <p>Ce graphique en Donut montre la proportion de projets "À faire", "En cours" et "Terminés".</p>
+
+                <h3>👥 Projets par sponsor</h3>
+                <p>Ce diagramme à barres classe les sponsors en fonction du nombre de projets qu'ils ont soumis. Au survol, il est possible de voir la liste des projets concernés.</p>
+
+                <h3>🚀 Avancement par sponsor</h3>
+                <p>Cette vue combine les précédentes en montrant pour chaque sponsor la répartition de ses projets par statut.</p>
+                
+                <h3>4. Journal des modifications (Changelog)</h3>
+                 <h4>v3.3.1 <span style="font-size: 0.8em; color: #4c566a;">(23/09/2025)</span></h4>
+                 <ul>
+                    <li><strong>Correctif :</strong> L'axe du graphique "Analyse de charge" ne peut plus afficher de valeurs négatives.</li>
+                 </ul>
+                <h4>v3.3.0</h4>
+                <ul>
+                    <li><strong>Amélioration UX :</strong> Les descriptions sous chaque graphique ont été enrichies pour plus de clarté.</li>
+                    <li><strong>Nouvelle fonctionnalité :</strong> Ajout d'un bouton "Exporter en PDF" dans l'onglet Planning & Saisie.</li>
+                </ul>
+                <h4>v3.2.2</h4>
+                 <ul>
+                    <li><strong>Correctif :</strong> Le tri par date de début/fin est maintenant fonctionnel et correctement appliqué.</li>
+                 </ul>
+                 <h4>v3.2.0</h4>
+                 <ul>
+                    <li><strong>Amélioration UX :</strong> Ajout de filtres de tri et de sponsor multi-sélection unifiés et synchronisés sur les onglets Planning, Vue Gantt et Timeline.</li>
+                 </ul>
+            </div>
+
+            <div id="status-split-container" class="content-tab hidden">
+                <div id="status-split-chart"></div>
+                <p class="chart-comment">
+                    Ce graphique montre la proportion de projets pour chaque statut.<br>
+                    <span class="comment-line-2">Il permet d'évaluer l'avancement global du portefeuille de projets.</span>
+                </p>
+            </div>
+            
+            <div id="sponsor-split-container" class="content-tab hidden">
+                 <div id="sponsor-split-chart"></div>
+                 <p class="chart-comment">
+                    Ce diagramme à barres mesure la demande de chaque sponsor.<br>
+                    <span class="comment-line-2">Survolez une barre pour voir la liste des projets de ce sponsor.</span>
+                </p>
+            </div>
+
+            <div id="sponsor-status-container" class="content-tab hidden">
+                 <div id="sponsor-status-chart"></div>
+                 <p class="chart-comment">
+                    Ce graphique combine le nombre de projets par sponsor avec leur statut.<br>
+                    <span class="comment-line-2">Il permet d'évaluer à la fois la charge et la dynamique de chaque sponsor.</span>
+                </p>
+            </div>
+
+            <div id="gantt-container" class="gantt-container content-tab hidden">
+                <div class="chart-header">
+                    <div class="filter-controls">
+                        <div class="filter-group">
+                           <label for="sponsor-filter-gantt">Sponsor</label>
+                           <select id="sponsor-filter-gantt" class="header-filter sponsor-filter-sync" multiple></select>
+                        </div>
+                        <div class="filter-group">
+                           <label for="sort-by-gantt">Trier par</label>
+                           <select id="sort-by-gantt" class="header-filter sort-by-sync"></select>
+                        </div>
+                    </div>
+                    <p id="gantt-counter" class="project-counter-sync chart-counter"></p>
+                </div>
+                <div id="gantt-chart"></div>
+                <p class="chart-comment">
+                    Ce diagramme illustre la chronologie des projets sur une ligne de temps.<br>
+                    <span class="comment-line-2">La ligne rouge verticale indique la date du jour pour un suivi facile.</span>
+                </p>
+            </div>
+
+            <div id="timeline-container" class="timeline-container content-tab hidden">
+                 <div class="chart-header">
+                    <div class="filter-controls">
+                        <div class="filter-group">
+                           <label for="sponsor-filter-timeline">Sponsor</label>
+                           <select id="sponsor-filter-timeline" class="header-filter sponsor-filter-sync" multiple></select>
+                        </div>
+                        <div class="filter-group">
+                           <label for="sort-by-timeline">Trier par</label>
+                           <select id="sort-by-timeline" class="header-filter sort-by-sync"></select>
+                        </div>
+                    </div>
+                    <p id="timeline-counter" class="project-counter-sync chart-counter"></p>
+                </div>
+                <div class="timeline-legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: var(--nord13);"></div>
+                        <span>À faire</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: var(--nord12);"></div>
+                        <span>En cours</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: var(--nord14);"></div>
+                        <span>Terminé</span>
+                    </div>
+                </div>
+                <div id="vertical-timeline-wrapper" class="timeline-wrapper"></div>
+                 <p class="chart-comment">
+                    Cette vue affiche les projets de manière chronologique le long d'un axe.<br>
+                    <span class="comment-line-2">Utilisez les filtres pour trier par date de début ou de fin.</span>
+                </p>
+            </div>
+
+            <div id="workload-container" class="workload-container content-tab hidden">
+                <div class="chart-header">
+                     <div class="filter-controls">
+                        <div class="filter-group">
+                           <label for="sponsor-filter-workload">Sponsor</label>
+                           <select id="sponsor-filter-workload" class="header-filter sponsor-filter-sync" multiple></select>
+                        </div>
+                    </div>
+                    <p id="workload-counter" class="project-counter-sync chart-counter"></p>
+                </div>
+                <div id="workload-chart"></div>
+                <p class="chart-comment">
+                    Ce graphique représente le nombre de projets actifs simultanément.<br>
+                    <span class="comment-line-2">Il permet d'anticiper les périodes de forte charge et les goulets d'étranglement.</span>
+                </p>
+            </div>
+            <div id="controls-container" class="controls-container content-tab hidden printable-area">
+                <h2>Planning & Versions</h2>
+                 <div class="planning-header">
+                    <div class="filter-controls">
+                        <div class="filter-group">
+                           <label for="sponsor-filter-planning">Sponsor</label>
+                           <select id="sponsor-filter-planning" class="header-filter sponsor-filter-sync" multiple></select>
+                        </div>
+                        <div class="filter-group">
+                           <label for="sort-by-planning">Trier par</label>
+                           <select id="sort-by-planning" class="header-filter sort-by-sync"></select>
+                        </div>
+                         <div class="filter-group">
+                           <label for="project-filter-planning">Filtrer par projet</label>
+                           <input type="text" id="project-filter-planning" class="header-filter" placeholder="Contient...">
+                        </div>
+                    </div>
+                     <p id="planning-counter" class="project-counter-sync chart-counter"></p>
+                </div>
+                <div id="table-wrapper"></div>
+                <div class="button-group">
+                    <button class="button add-button" id="add-task-btn">Ajouter un projet</button>
+                    <button class="button save-button" id="update-version-btn">Mettre à jour la version</button>
+                    <button class="button add-button" id="create-version-btn">Créer une nouvelle version</button>
+                    <button class="button delete-button" id="delete-version-btn">Supprimer la version</button>
+                    <button class="button" id="export-pdf-btn" style="background-color: var(--nord8);">Exporter en PDF</button>
+                </div>
+            </div>
         </div>
-        <div id="controls-container" class="controls-container content-tab hidden">
-            <h2>Planning</h2>
-            <div id="table-wrapper"></div>
-            <button class="button add-button" id="add-task-btn">Ajouter un projet</button>
-            <button class="button save-button" id="manage-versions-btn">Gérer les versions...</button>
+    </div>
+    
+    <div id="new-version-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3>Créer une nouvelle version</h3>
+            <form id="new-version-form">
+                 <div>
+                    <label for="new-version-name">Nom de la nouvelle version</label>
+                    <input type="text" id="new-version-name" required>
+                </div>
+                 <div class="modal-actions">
+                    <button type="submit" class="button add-button">Créer</button>
+                    <button type="button" id="cancel-new-version-btn" class="button cancel-button">Annuler</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <div id="save-modal" class="modal-overlay hidden">
+    <div id="project-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <h3>Gérer les versions</h3>
-            <label for="modal-versions-select">Action</label>
-            <select id="modal-versions-select"><option value="new">Créer une nouvelle version</option></select>
-            <label for="version-name-input">Nom de la version</label>
-            <input type="text" id="version-name-input" placeholder="Nom de la nouvelle version...">
-            <div id="default-version-wrapper" class="default-version-wrapper hidden">
-                <input type="checkbox" id="set-as-default-checkbox">
-                <label for="set-as-default-checkbox">Définir comme version par défaut</label>
-            </div>
-            <div class="modal-actions">
-                <button id="confirm-save-btn" class="button save-button">Mettre à jour</button>
-                <button id="confirm-delete-btn" class="button delete-button hidden">Supprimer</button>
-                <button id="cancel-save-btn" class="button cancel-button">Annuler</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="description-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3>Description du projet</h3>
-            <p><strong>Projet :</strong> <span id="desc-modal-project-name"></span></p>
-            <label for="desc-modal-textarea">Description</label>
-            <textarea id="desc-modal-textarea" rows="10"></textarea>
-            <div class="modal-actions">
-                <button id="confirm-desc-btn" class="button save-button">Valider</button>
-                <button id="cancel-desc-btn" class="button cancel-button">Annuler</button>
-            </div>
+            <h3 id="project-modal-title">Ajouter un projet</h3>
+            <form id="project-form">
+                <input type="hidden" id="project-id">
+                <div>
+                    <label for="project-name">Nom du projet</label>
+                    <input type="text" id="project-name" required>
+                </div>
+                <div>
+                    <label for="project-sponsor">Sponsor</label>
+                    <select id="project-sponsor" required></select>
+                </div>
+                 <div>
+                    <label for="project-status">Statut</label>
+                    <select id="project-status" required>
+                        <option value="À faire">À faire</option>
+                        <option value="En cours">En cours</option>
+                        <option value="Terminé">Terminé</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="project-start">Date de début</label>
+                    <input type="date" id="project-start" required>
+                </div>
+                <div>
+                    <label for="project-end">Date de fin</label>
+                    <input type="date" id="project-end" required>
+                </div>
+                <div>
+                    <label for="project-description">Description</label>
+                    <textarea id="project-description" rows="5"></textarea>
+                </div>
+                 <div class="modal-actions">
+                    <button type="submit" class="button save-button">Sauvegarder</button>
+                    <button type="button" id="cancel-project-btn" class="button cancel-button">Annuler</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -436,7 +846,8 @@
         
         let currentTasks = [];
         let displayedTasks = [];
-        let sponsorFilter = 'all';
+        let sponsorFilter = [];
+        let sortBy = 'end';
         let projectFilter = '';
         let allVersions = [];
         let filterDebounceTimer;
@@ -444,6 +855,7 @@
         let workloadChart;
         let statusSplitChart, sponsorSplitChart, sponsorStatusChart, miniStatusChart;
         let db;
+        let sponsorSelects = [];
 
         const calculateDuration = (start, end) => {
             const startDate = new Date(start);
@@ -465,17 +877,17 @@
                 return [{ name: "Projets actifs", data: [] }];
             }
             
-            const workload = new Map();
-            let minDate = new Date(tasks[0].start);
-            let maxDate = new Date(tasks[0].end);
-
+            let minDate, maxDate;
             tasks.forEach(task => {
                 const start = new Date(task.start);
                 const end = new Date(task.end);
-                if (start < minDate) minDate = start;
-                if (end > maxDate) maxDate = end;
+                if (!minDate || start < minDate) minDate = start;
+                if (!maxDate || end > maxDate) maxDate = end;
             });
 
+            if (!minDate || !maxDate) return [{ name: "Projets actifs", data: [] }];
+            
+            const workload = new Map();
             for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
                 workload.set(d.toISOString().split('T')[0], 0);
             }
@@ -498,18 +910,28 @@
             data.sort((a,b) => a.x - b.x);
             return [{ name: "Projets actifs", data: data }];
         };
-
-        const populateSponsorFilters = () => {
-            const sponsorOptions = sponsors.map(s => `<option value="${s}">${s}</option>`).join('');
-            document.querySelectorAll('.sponsor-filter-sync').forEach(filter => {
-                filter.innerHTML = `<option value="all">Tous sponsors</option>${sponsorOptions}`;
-                filter.value = sponsorFilter;
+        
+        const syncSponsorFilters = (newValues, initiatorId) => {
+            sponsorSelects.forEach(s => {
+                if (s.select.id !== initiatorId) {
+                    s.setSelected(newValues);
+                }
             });
         };
-
-        const syncSponsorFilters = () => {
-            document.querySelectorAll('.sponsor-filter-sync').forEach(filter => {
-                filter.value = sponsorFilter;
+        
+        const populateSortFilters = () => {
+             document.querySelectorAll('.sort-by-sync').forEach(filter => {
+                filter.innerHTML = `
+                    <option value="end">Date de fin</option>
+                    <option value="start">Date de début</option>
+                `;
+                filter.value = sortBy;
+            });
+        };
+        
+        const syncSortFilters = () => {
+             document.querySelectorAll('.sort-by-sync').forEach(filter => {
+                filter.value = sortBy;
             });
         };
 
@@ -518,23 +940,52 @@
             try { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); } 
             catch (e) { console.error("Erreur d'initialisation de Firebase", e); }
 
-            populateSponsorFilters();
-
-            const handleSponsorFilterChange = (e) => {
-                sponsorFilter = e.target.value;
+            populateSortFilters();
+            
+            const handleSortByChange = (e) => {
+                sortBy = e.target.value;
                 refreshUI();
             };
 
+            document.getElementById('sidebar-toggle').addEventListener('click', () => {
+                document.body.classList.toggle('sidebar-collapsed');
+            });
+
+            document.querySelectorAll('.sponsor-filter-sync').forEach(selectElement => {
+                const slim = new SlimSelect({
+                    select: selectElement,
+                    settings: {
+                        placeholderText: 'Tous les sponsors',
+                        searchText: 'Recherche impossible.',
+                        searchPlaceholder: 'Rechercher',
+                        selectAll: true,
+                        selectAllText: 'Sélectionner tout',
+                    },
+                    data: sponsors.map(s => ({text: s, value: s})),
+                    events: {
+                        afterChange: (newVal) => {
+                            sponsorFilter = newVal.map(v => v.value);
+                            syncSponsorFilters(sponsorFilter, selectElement.id);
+                            refreshUI();
+                        }
+                    }
+                });
+                sponsorSelects.push(slim);
+            });
+            document.getElementById('project-sponsor').innerHTML = sponsors.map(s => `<option value="${s}">${s}</option>`).join('');
+
+
             const elements = {
-                saveModal: document.getElementById('save-modal'), versionNameInput: document.getElementById('version-name-input'),
-                versionsSelect: document.getElementById('versions-select'), modalVersionsSelect: document.getElementById('modal-versions-select'),
-                confirmDeleteBtn: document.getElementById('confirm-delete-btn'), defaultVersionWrapper: document.getElementById('default-version-wrapper'),
-                setAsDefaultCheckbox: document.getElementById('set-as-default-checkbox'),
-                descModal: document.getElementById('description-modal'), descModalProjectName: document.getElementById('desc-modal-project-name'),
-                descModalTextarea: document.getElementById('desc-modal-textarea'),
+                projectModal: document.getElementById('project-modal'),
+                projectModalTitle: document.getElementById('project-modal-title'),
+                projectForm: document.getElementById('project-form'),
+                newVersionModal: document.getElementById('new-version-modal'),
+                newVersionForm: document.getElementById('new-version-form'),
+                versionsSelect: document.getElementById('versions-select'),
                 tableWrapper: document.getElementById('table-wrapper'),
                 ganttChart: document.querySelector("#gantt-chart"),
                 workloadChart: document.querySelector("#workload-chart"),
+                verticalTimelineWrapper: document.querySelector("#vertical-timeline-wrapper"),
                 statusSplitChart: document.querySelector("#status-split-chart"),
                 sponsorSplitChart: document.querySelector("#sponsor-split-chart"),
                 sponsorStatusChart: document.querySelector("#sponsor-status-chart"),
@@ -621,10 +1072,29 @@
             miniStatusChart.render();
             
             const sponsorSplitOptions = {
-                series: [{ name: 'Projets', data: [] }], chart: { type: 'bar', height: 450 },
-                plotOptions: { bar: { horizontal: true } },
-                colors: ['#81a1c1'],
-                xaxis: { categories: [] }
+                series: [{ name: 'Projets', data: [] }], 
+                chart: { type: 'bar', height: 450 },
+                plotOptions: { bar: { horizontal: true, barHeight: '50%', borderRadius: 5 } },
+                colors: ['#d08770'],
+                dataLabels: { enabled: true },
+                xaxis: { categories: [] },
+                tooltip: {
+                    custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                        const sponsorName = w.globals.labels[dataPointIndex];
+                        if (!sponsorName) return '';
+
+                        const projectsForSponsor = displayedTasks.filter(task => task.sponsor === sponsorName);
+                        
+                        let projectList = projectsForSponsor
+                            .map(p => `<li>${p.name.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</li>`)
+                            .join('');
+                        
+                        return `<div class="apexcharts-tooltip-box sponsor-tooltip">
+                                    <div class="apexcharts-tooltip-title">${sponsorName} (${projectsForSponsor.length} projet${projectsForSponsor.length > 1 ? 's' : ''})</div>
+                                    <ul>${projectList}</ul>
+                                </div>`;
+                    }
+                }
             };
             sponsorSplitChart = new ApexCharts(elements.sponsorSplitChart, sponsorSplitOptions);
             sponsorSplitChart.render();
@@ -637,7 +1107,25 @@
                 yaxis: { title: { text: undefined } },
                 colors: ['#ebcb8b', '#d08770', '#a3be8c'],
                 fill: { opacity: 1 },
-                legend: { position: 'top', horizontalAlign: 'left', offsetX: 40 }
+                legend: { position: 'top', horizontalAlign: 'left', offsetX: 40 },
+                tooltip: {
+                    custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                        const sponsorName = w.globals.labels[dataPointIndex];
+                        const statusName = w.globals.seriesNames[seriesIndex];
+                        if (!sponsorName || !statusName) return '';
+
+                        const projectsForSponsorAndStatus = displayedTasks.filter(task => task.sponsor === sponsorName && task.status === statusName);
+                        
+                        let projectList = projectsForSponsorAndStatus
+                            .map(p => `<li>${p.name.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</li>`)
+                            .join('');
+                        
+                        return `<div class="apexcharts-tooltip-box sponsor-tooltip">
+                                    <div class="apexcharts-tooltip-title">${sponsorName} - ${statusName} (${projectsForSponsorAndStatus.length} projet${projectsForSponsorAndStatus.length > 1 ? 's' : ''})</div>
+                                    <ul>${projectList}</ul>
+                                </div>`;
+                    }
+                }
             };
             sponsorStatusChart = new ApexCharts(elements.sponsorStatusChart, sponsorStatusOptions);
             sponsorStatusChart.render();
@@ -648,18 +1136,12 @@
 
             const switchTab = (targetId) => {
                  tabs.forEach(item => {
-                    if(item.dataset.tab === targetId) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
+                    item.classList.toggle('active', item.dataset.tab === targetId);
                 });
                 contentTabs.forEach(content => {
-                    content.classList.add('hidden');
-                    if (content.id === targetId) {
-                        content.classList.remove('hidden');
-                    }
+                    content.classList.toggle('hidden', content.id !== targetId);
                 });
+
                 if (targetId === 'gantt-container') {
                     chart.updateOptions({ chart: { height: Math.max(600, displayedTasks.length * 45) } });
                 }
@@ -687,69 +1169,41 @@
             tabs.forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
             accueilCards.forEach(card => card.addEventListener('click', () => switchTab(card.dataset.tab)));
 
-            document.querySelectorAll('#sponsor-filter-gantt, #sponsor-filter-workload').forEach(filter => {
-                filter.addEventListener('change', handleSponsorFilterChange);
+            document.querySelectorAll('.sort-by-sync').forEach(filter => {
+                filter.addEventListener('change', handleSortByChange);
             });
             
             const renderTable = (tasks) => {
-                const sponsorOptions = sponsors.map(s => `<option value="${s}">${s}</option>`).join('');
                 let tableHTML = `<table id="tasks-table">
                     <thead>
-                        <tr class="filter-row">
-                            <th></th>
-                            <th><select id="sponsor-filter-table" class="header-filter sponsor-filter-sync"><option value="all">Tous sponsors</option>${sponsorOptions}</select></th>
-                            <th><input type="text" id="project-filter" class="header-filter" placeholder="Filtrer projet (3 car. min)..."></th>
-                            <th class="project-counter-sync" colspan="5" style="text-align: right; width: 100%;"></th>
-                        </tr>
                         <tr>
-                            <th style="width: 5%;"></th>
-                            <th class="center-header" style="width: 15%;">Sponsor</th>
-                            <th class="center-header">Projet</th>
-                            <th class="center-header" style="width: 12%;">Début</th>
-                            <th class="center-header" style="width: 12%;">Fin</th>
-                            <th class="center-header" style="width: 8%;">Durée (j)</th>
-                            <th class="center-header" style="width: 10%;">Description</th>
-                            <th class="center-header" style="width: 12%;">Statut</th>
+                            <th style="width: 15%;">Sponsor</th>
+                            <th>Projet</th>
+                            <th style="width: 12%;">Début</th>
+                            <th style="width: 12%;">Fin</th>
+                            <th style="width: 12%;">Statut</th>
+                            <th style="width: 15%;" class="action-cell">Actions</th>
                         </tr>
                     </thead>
                     <tbody>`;
 
                 tasks.forEach((task) => {
-                    const duration = calculateDuration(task.start, task.end);
                     tableHTML += `<tr>
-                        <td class="delete-cell"><button class="delete-row-btn" data-id="${task.id}" title="Supprimer ce projet">×</button></td>
-                        <td><select data-id="${task.id}" data-type="sponsor">${sponsors.map(s => `<option value="${s}" ${task.sponsor === s ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
-                        <td class="task-name-cell"><input type="text" value="${task.name}" data-id="${task.id}" data-type="name"></td>
-                        <td><input type="date" value="${task.start}" data-id="${task.id}" data-type="start"></td>
-                        <td><input type="date" value="${task.end}" data-id="${task.id}" data-type="end"></td>
-                        <td class="task-duration">${duration} j</td>
-                        <td><button class="edit-desc-btn" data-id="${task.id}">Détails</button></td>
-                        <td><select data-id="${task.id}" data-type="status">
-                            <option value="À faire" ${task.status === 'À faire' ? 'selected' : ''}>À faire</option>
-                            <option value="En cours" ${task.status === 'En cours' ? 'selected' : ''}>En cours</option>
-                            <option value="Terminé" ${task.status === 'Terminé' ? 'selected' : ''}>Terminé</option>
-                        </select></td>
+                        <td>${task.sponsor}</td>
+                        <td>${task.name}</td>
+                        <td>${new Date(task.start).toLocaleDateString('fr-FR')}</td>
+                        <td>${new Date(task.end).toLocaleDateString('fr-FR')}</td>
+                        <td>${task.status}</td>
+                        <td class="action-cell">
+                            <button class="edit-task-btn" data-id="${task.id}">Modifier</button>
+                            <button class="delete-row-btn" data-id="${task.id}" title="Supprimer ce projet">×</button>
+                        </td>
                     </tr>`;
                 });
                 tableHTML += `</tbody></table>`;
                 elements.tableWrapper.innerHTML = tableHTML;
 
-                document.getElementById('sponsor-filter-table').addEventListener('change', handleSponsorFilterChange);
-
-                const projectFilterEl = document.getElementById('project-filter');
-                projectFilterEl.value = projectFilter;
-                
-                projectFilterEl.addEventListener('input', (e) => {
-                    clearTimeout(filterDebounceTimer);
-                    const inputValue = e.target.value;
-                    filterDebounceTimer = setTimeout(() => {
-                        projectFilter = inputValue;
-                        refreshUI();
-                    }, 1000);
-                });
-
-                elements.tableWrapper.querySelectorAll('input, select:not(.sponsor-filter-sync)').forEach(input => input.addEventListener('change', handleInputChange));
-                elements.tableWrapper.querySelectorAll('.delete-row-btn, .edit-desc-btn').forEach(button => {
+                elements.tableWrapper.querySelectorAll('.delete-row-btn, .edit-task-btn').forEach(button => {
                     button.addEventListener('click', (event) => {
                         const id = event.currentTarget.dataset.id;
                         if (button.classList.contains('delete-row-btn')) {
@@ -759,23 +1213,94 @@
                                 refreshUI();
                                 localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
                             }
-                        } else if (button.classList.contains('edit-desc-btn')) {
-                            openDescriptionModal(id);
+                        } else if (button.classList.contains('edit-task-btn')) {
+                            openProjectModal(id);
                         }
                     });
                 });
             };
-
-            const openDescriptionModal = (taskId) => {
-                const task = currentTasks.find(t => t.id === taskId);
-                if (!task) return;
-                elements.descModal.dataset.editingId = taskId;
-                elements.descModalProjectName.textContent = `[${task.sponsor}] ${task.name}`;
-                elements.descModalTextarea.value = task.description || '';
-                elements.descModal.classList.remove('hidden');
-                elements.descModalTextarea.focus();
+            
+            const openProjectModal = (taskId = null) => {
+                elements.projectForm.reset();
+                if (taskId) {
+                    const task = currentTasks.find(t => t.id === taskId);
+                    elements.projectModalTitle.textContent = "Modifier le projet";
+                    document.getElementById('project-id').value = task.id;
+                    document.getElementById('project-name').value = task.name;
+                    document.getElementById('project-sponsor').value = task.sponsor;
+                    document.getElementById('project-status').value = task.status;
+                    document.getElementById('project-start').value = task.start;
+                    document.getElementById('project-end').value = task.end;
+                    document.getElementById('project-description').value = task.description;
+                } else {
+                    elements.projectModalTitle.textContent = "Ajouter un projet";
+                    document.getElementById('project-id').value = '';
+                }
+                elements.projectModal.classList.remove('hidden');
             };
             
+            elements.projectForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const id = document.getElementById('project-id').value;
+                const taskData = {
+                    name: document.getElementById('project-name').value,
+                    sponsor: document.getElementById('project-sponsor').value,
+                    status: document.getElementById('project-status').value,
+                    start: document.getElementById('project-start').value,
+                    end: document.getElementById('project-end').value,
+                    description: document.getElementById('project-description').value
+                };
+
+                if (id) { // Edition
+                    const taskIndex = currentTasks.findIndex(t => t.id === id);
+                    if (taskIndex > -1) {
+                        currentTasks[taskIndex] = { ...currentTasks[taskIndex], ...taskData };
+                    }
+                } else { // Création
+                    taskData.id = `task_${new Date().getTime()}`;
+                    currentTasks.push(taskData);
+                }
+                
+                elements.projectModal.classList.add('hidden');
+                refreshUI();
+                localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
+            });
+
+            document.getElementById('cancel-project-btn').addEventListener('click', () => {
+                elements.projectModal.classList.add('hidden');
+            });
+
+
+            const renderVerticalTimeline = (tasks) => {
+                if (!elements.verticalTimelineWrapper) return;
+                
+                let timelineHTML = '';
+                if(tasks.length === 0){
+                    timelineHTML = '<p style="text-align:center;">Aucun projet à afficher avec les filtres actuels.</p>';
+                } else {
+                    tasks.forEach(task => {
+                        const options = { year: 'numeric', month: 'short', day: 'numeric' }; 
+                        const startDate = new Date(task.start).toLocaleDateString('fr-FR', options);
+                        const endDate = new Date(task.end).toLocaleDateString('fr-FR', options);
+                        const description = task.description ? task.description.replace(/\n/g, '<br>') : '<i>Aucune description.</i>';
+                        const statusClass = `status-${task.status.toLowerCase().replace(' ', '-').replace('à', 'a').replace('é','e')}`;
+
+                        timelineHTML += `
+                            <div class="timeline-item">
+                                <div class="timeline-dot"></div>
+                                <div class="timeline-content ${statusClass}">
+                                    <span class="sponsor-tag">${task.sponsor}</span>
+                                    <h3>${task.name}</h3>
+                                    <span class="date-range">Du ${startDate} au ${endDate}</span>
+                                    <p>${description}</p>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                elements.verticalTimelineWrapper.innerHTML = timelineHTML;
+            };
+
             const updateCounter = () => {
                 const allCounters = document.querySelectorAll('.project-counter-sync');
                 if (allCounters.length === 0) return;
@@ -784,8 +1309,8 @@
                 const plural = count > 1 ? 's' : '';
                 let text = `Affiche ${count} projet${plural}`;
 
-                if (sponsorFilter !== 'all') {
-                    text += ` pour ${sponsorFilter}`;
+                if (sponsorFilter.length > 0 && sponsorFilter.length < sponsors.length) {
+                    text += ` pour ${sponsorFilter.join(', ')}`;
                 } else {
                     text += `, tous sponsors confondus`;
                 }
@@ -795,13 +1320,13 @@
                 });
             };
 
-            const applyFilters = () => {
-                let filtered = [...currentTasks];
-                if (sponsorFilter !== 'all') {
-                    filtered = filtered.filter(task => task.sponsor === sponsorFilter);
+            const applyFilters = (tasks) => {
+                let filtered = [...tasks];
+                if (sponsorFilter.length > 0 && sponsorFilter.length < sponsors.length) {
+                    filtered = filtered.filter(task => sponsorFilter.includes(task.sponsor));
                 }
                 const searchTerm = projectFilter.toLowerCase().trim();
-                if (searchTerm.length >= 3) {
+                if (searchTerm.length > 0) {
                     filtered = filtered.filter(task => task.name.toLowerCase().includes(searchTerm));
                 }
                 return filtered;
@@ -847,20 +1372,26 @@
                 const chartHeight = Math.max(600, tasks.length * 45);
                 if (chart) {
                     chart.updateOptions({
-                        chart: { height: chartHeight }, series: formatDataForChart(tasks),
-                        annotations: { xaxis: [{ x: new Date().getTime(), borderColor: '#e44d26', strokeDashArray: 2, label: { text: 'Aujourd\'hui', borderColor: '#e44d26', style: { color: '#fff', background: '#e44d26' } } }] }
+                        chart: { height: chartHeight }, series: formatDataForChart(tasks)
                     });
                 }
                 if (workloadChart) {
                     const workloadData = calculateWorkloadData(tasks);
-                    const actualMaxY = workloadData[0].data.reduce((max, point) => Math.max(max, point.y), 0);
+                    const actualMaxY = workloadData.length > 0 && workloadData[0].data.length > 0 ? workloadData[0].data.reduce((max, point) => Math.max(max, point.y), 0) : 0;
                     const newYAxisMax = (actualMaxY < 5) ? 5 : Math.ceil(actualMaxY / 5) * 5;
                     workloadChart.updateOptions({
                         series: workloadData,
-                        yaxis: { max: newYAxisMax, tickAmount: (newYAxisMax <= 10) ? newYAxisMax : 10 }
+                        yaxis: { 
+                            min: 0,
+                            max: newYAxisMax, 
+                            tickAmount: (newYAxisMax <= 10) ? newYAxisMax : 10 
+                        }
                     });
                 }
-                 const statusCounts = { 'À faire': 0, 'En cours': 0, 'Terminé': 0 };
+                
+                renderVerticalTimeline(tasks);
+
+                const statusCounts = { 'À faire': 0, 'En cours': 0, 'Terminé': 0 };
                 tasks.forEach(task => { statusCounts[task.status]++; });
                 statusSplitChart.updateSeries([statusCounts['À faire'], statusCounts['En cours'], statusCounts['Terminé']]);
 
@@ -897,31 +1428,19 @@
             };
             
             const refreshUI = () => {
-                currentTasks.sort((a, b) => new Date(a.end) - new Date(b.end));
-                displayedTasks = applyFilters();
+                let filteredTasks = applyFilters(currentTasks);
+                
+                filteredTasks.sort((a, b) => new Date(a[sortBy]) - new Date(b[sortBy]));
+                
+                displayedTasks = filteredTasks;
+
                 renderTable(displayedTasks); 
                 updateCharts(displayedTasks);
                 updateDashboard();
                 updateCounter();
-                syncSponsorFilters();
+                syncSortFilters();
             };
             
-            const handleInputChange = (event) => {
-                const { id, type } = event.target.dataset;
-                const taskIndex = currentTasks.findIndex(t => t.id === id);
-                if (taskIndex === -1) return;
-                currentTasks[taskIndex][type] = event.target.value;
-                if (type === 'start' || type === 'end') {
-                    const task = currentTasks[taskIndex];
-                    if (new Date(task.end) < new Date(task.start)) {
-                        if (type === 'start') task.end = task.start;
-                        else task.start = task.end;
-                    }
-                }
-                refreshUI();
-                localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
-            };
-
             const updateVersionsDropdown = (versions) => {
                 const selectedValue = elements.versionsSelect.value;
                 elements.versionsSelect.innerHTML = '<option value="">-- Sélectionnez une version --</option>';
@@ -932,16 +1451,6 @@
                     elements.versionsSelect.appendChild(option);
                 });
                 if(selectedValue) elements.versionsSelect.value = selectedValue;
-            };
-
-            const populateModalDropdown = () => {
-                elements.modalVersionsSelect.innerHTML = '<option value="new">Créer une nouvelle version</option>';
-                allVersions.forEach(version => {
-                    const option = document.createElement('option');
-                    option.value = version.id;
-                    option.textContent = version.name;
-                    elements.modalVersionsSelect.appendChild(option);
-                });
             };
 
             const setCurrentTasks = (tasks) => {
@@ -959,52 +1468,6 @@
             };
             
             const loadVersionFromFirestore = async (versionId) => { if (!versionId) return; try { const doc = await db.collection("versions").doc(versionId).get(); if (doc.exists) setCurrentTasks(doc.data().tasks); } catch (error) { console.error("Erreur de lecture", error); } };
-            
-            const handleSaveOrUpdateVersion = async () => {
-                const selectedActionId = elements.modalVersionsSelect.value;
-                const newName = elements.versionNameInput.value.trim();
-                const isDefault = elements.setAsDefaultCheckbox.checked;
-                if (!newName) return alert("Le nom de la version ne peut pas être vide.");
-                const plainTasks = JSON.parse(JSON.stringify(currentTasks));
-                const versionData = { name: newName, tasks: plainTasks, isDefault };
-                const existingNameQuery = await db.collection("versions").where("name", "==", newName).get();
-                const nameExistsOnOtherDoc = !existingNameQuery.empty && existingNameQuery.docs[0].id !== selectedActionId;
-                if (nameExistsOnOtherDoc) return alert(`Une autre version nommée "${newName}" existe déjà.`);
-                try {
-                    const batch = db.batch();
-                    if (isDefault) {
-                        const currentDefaultQuery = await db.collection("versions").where("isDefault", "==", true).get();
-                        currentDefaultQuery.forEach(doc => {
-                            if (doc.id !== selectedActionId) batch.update(doc.ref, { isDefault: false });
-                        });
-                    }
-                    if (selectedActionId === 'new') {
-                        const newDocRef = db.collection("versions").doc();
-                        batch.set(newDocRef, versionData);
-                    } else {
-                        const docRef = db.collection("versions").doc(selectedActionId);
-                        batch.update(docRef, versionData);
-                    }
-                    await batch.commit();
-                    alert(`Version "${newName}" sauvegardée avec succès !`);
-                    elements.saveModal.classList.add('hidden');
-                } catch (error) { console.error("Erreur:", error); alert("Erreur lors de la sauvegarde."); }
-            };
-
-            const deleteVersionFromFirestore = async () => {
-                const selectedId = elements.modalVersionsSelect.value;
-                if (!selectedId || selectedId === 'new') return;
-                const selectedOption = elements.modalVersionsSelect.options[elements.modalVersionsSelect.selectedIndex];
-                const versionName = selectedOption.text;
-                if (confirm(`Êtes-vous sûr de vouloir supprimer la version "${versionName}" ?`)) {
-                    try {
-                        await db.collection("versions").doc(selectedId).delete();
-                        alert(`Version "${versionName}" supprimée.`);
-                        setCurrentTasks(initialTasks);
-                        elements.saveModal.classList.add('hidden');
-                    } catch (error) { console.error("Erreur de suppression", error); }
-                }
-            };
             
             const listenForVersionsChanges = () => { 
                 db.collection("versions").orderBy("name").onSnapshot(snapshot => { 
@@ -1027,64 +1490,72 @@
                 setCurrentTasks(saved ? JSON.parse(saved) : initialTasks); 
             };
 
-            document.getElementById('confirm-desc-btn').addEventListener('click', () => {
-                const id = elements.descModal.dataset.editingId;
-                const taskIndex = currentTasks.findIndex(t => t.id === id);
-                if (taskIndex > -1) {
-                    currentTasks[taskIndex].description = elements.descModalTextarea.value;
-                    localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
-                    elements.descModal.classList.add('hidden');
-                    updateCharts(displayedTasks);
-                }
+            document.getElementById('add-task-btn').addEventListener('click', () => openProjectModal());
+            document.getElementById('create-version-btn').addEventListener('click', () => {
+                elements.newVersionModal.classList.remove('hidden');
+                document.getElementById('new-version-name').focus();
             });
-            document.getElementById('cancel-desc-btn').addEventListener('click', () => elements.descModal.classList.add('hidden'));
+            document.getElementById('cancel-new-version-btn').addEventListener('click', () => {
+                elements.newVersionModal.classList.add('hidden');
+            });
             
-            document.getElementById('manage-versions-btn').addEventListener('click', () => {
-                populateModalDropdown();
-                elements.modalVersionsSelect.value = 'new';
-                elements.versionNameInput.value = '';
-                elements.versionNameInput.placeholder = 'Nom de la nouvelle version...';
-                elements.confirmDeleteBtn.classList.add('hidden');
-                elements.defaultVersionWrapper.classList.add('hidden');
-                elements.saveModal.classList.remove('hidden');
-                elements.versionNameInput.focus();
+            elements.newVersionForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const newName = document.getElementById('new-version-name').value.trim();
+                if (!newName) {
+                    return alert("Le nom de la version ne peut pas être vide.");
+                }
+                const plainTasks = JSON.parse(JSON.stringify(currentTasks));
+                const versionData = { name: newName, tasks: plainTasks, isDefault: false };
+                
+                try {
+                    const newDocRef = await db.collection("versions").add(versionData);
+                    alert(`Version "${newName}" créée avec succès !`);
+                    elements.newVersionModal.classList.add('hidden');
+                    elements.versionsSelect.value = newDocRef.id;
+                } catch (error) {
+                    console.error("Erreur:", error);
+                    alert("Erreur lors de la création de la version.");
+                }
             });
 
-            elements.modalVersionsSelect.addEventListener('change', (event) => {
-                const selectedId = event.target.value;
-                if (selectedId === 'new') {
-                    elements.versionNameInput.value = '';
-                    elements.versionNameInput.placeholder = 'Nom de la nouvelle version...';
-                    elements.confirmDeleteBtn.classList.add('hidden');
-                    elements.defaultVersionWrapper.classList.add('hidden');
-                } else {
-                    const selectedVersion = allVersions.find(v => v.id === selectedId);
-                    if (selectedVersion) {
-                        elements.versionNameInput.value = selectedVersion.name;
-                        elements.setAsDefaultCheckbox.checked = selectedVersion.isDefault || false;
+            document.getElementById('update-version-btn').addEventListener('click', async () => {
+                const selectedId = elements.versionsSelect.value;
+                if (!selectedId) {
+                    return alert("Veuillez d'abord sélectionner une version à mettre à jour.");
+                }
+                const selectedVersion = allVersions.find(v => v.id === selectedId);
+                if (confirm(`Mettre à jour la version "${selectedVersion.name}" avec les données actuelles ?`)) {
+                    const plainTasks = JSON.parse(JSON.stringify(currentTasks));
+                    try {
+                        await db.collection("versions").doc(selectedId).update({ tasks: plainTasks });
+                        alert(`Version "${selectedVersion.name}" mise à jour avec succès !`);
+                    } catch (error) {
+                        console.error("Erreur de mise à jour:", error);
+                        alert("Erreur lors de la mise à jour.");
                     }
-                    elements.confirmDeleteBtn.classList.remove('hidden');
-                    elements.defaultVersionWrapper.classList.remove('hidden');
                 }
             });
-            
-            document.getElementById('confirm-save-btn').addEventListener('click', handleSaveOrUpdateVersion);
-            document.getElementById('cancel-save-btn').addEventListener('click', () => elements.saveModal.classList.add('hidden'));
-            elements.confirmDeleteBtn.addEventListener('click', deleteVersionFromFirestore);
+
+            document.getElementById('delete-version-btn').addEventListener('click', async () => {
+                const selectedId = elements.versionsSelect.value;
+                if (!selectedId) {
+                    return alert("Veuillez d'abord sélectionner une version à supprimer.");
+                }
+                const selectedVersion = allVersions.find(v => v.id === selectedId);
+                if (confirm(`Êtes-vous sûr de vouloir supprimer la version "${selectedVersion.name}" ? Cette action est irréversible.`)) {
+                    try {
+                        await db.collection("versions").doc(selectedId).delete();
+                        alert(`Version "${selectedVersion.name}" supprimée.`);
+                        setCurrentTasks(initialTasks);
+                    } catch (error) {
+                        console.error("Erreur de suppression:", error);
+                    }
+                }
+            });
 
             elements.versionsSelect.addEventListener('change', () => loadVersionFromFirestore(elements.versionsSelect.value));
             
-            document.getElementById('add-task-btn').addEventListener('click', () => {
-                const today = new Date().toISOString().split('T')[0];
-                const newProject = {
-                    id: `task_${new Date().getTime()}`, sponsor: sponsorFilter !== 'all' ? sponsorFilter : sponsors[0], name: 'Nouveau Projet',
-                    start: today, end: today, description: '', status: 'À faire'
-                };
-                currentTasks.push(newProject);
-                refreshUI();
-                localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
-            });
-
             document.getElementById('kpi-card-total').addEventListener('click', () => {
                 showKpiDetailsModal('Total des Projets', currentTasks);
             });
@@ -1101,6 +1572,20 @@
             document.getElementById('close-kpi-modal-btn').addEventListener('click', () => {
                 elements.kpiDetailsModal.classList.add('hidden');
             });
+            
+            document.getElementById('project-filter-planning').addEventListener('input', (e) => {
+                clearTimeout(filterDebounceTimer);
+                const inputValue = e.target.value;
+                filterDebounceTimer = setTimeout(() => {
+                    projectFilter = inputValue;
+                    refreshUI();
+                }, 500); 
+            });
+
+            document.getElementById('export-pdf-btn').addEventListener('click', () => {
+                window.print();
+            });
+
 
             listenForVersionsChanges();
             loadInitialTasks();
@@ -1108,4 +1593,3 @@
     </script>
 </body>
 </html>
-
